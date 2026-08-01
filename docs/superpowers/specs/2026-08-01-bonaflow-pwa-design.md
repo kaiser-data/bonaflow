@@ -51,7 +51,7 @@ The data layer has two implementations behind one interface:
 
 ## State and Mutation Boundaries
 
-The seed contains event metadata, four stations, five real dishes, alerts, replenishment tasks, the incentive configuration, and a staff-update counter. Dish placements are station-specific so availability can change at one station without changing every copy of that dish.
+The seed contains event metadata, four stations, five real dishes, alerts, replenishment tasks, the incentive configuration, a staff-update counter, and an empty anonymous feedback array. Dish placements are station-specific so availability can change at one station without changing every copy of that dish.
 
 All state changes pass through pure TypeScript functions before persistence. The mutation engine:
 
@@ -64,6 +64,8 @@ All state changes pass through pure TypeScript functions before persistence. The
 7. recalculates recommendations for every supported dietary filter.
 
 Quick actions generate trusted deterministic extractions and can apply immediately after any required dish selection. Text and voice updates must pass through the editable confirmation screen before `/api/apply` persists anything.
+
+Guest feedback is isolated from this mutation engine. Its dedicated route may only append an anonymous record to the feedback array. It cannot change stations, dishes, recommendations, alerts, tasks, incentives, or counters used by the main demo.
 
 ## Live Data Flow
 
@@ -103,13 +105,39 @@ The confirmation view shows editable Station, Dish, Availability, Queue, Reporte
 
 `/ops` shows all station states, active alerts newest first, open replenishment tasks, last-update timestamps, and the update counter. Tasks can be completed. The incentive can be toggled by operations and never originates from model output. Reset requires confirmation and restores the seed exactly.
 
+### Anonymous leftover feedback
+
+`/feedback` is a self-contained, voice-first post-meal route. A guest selects a dish and holds to talk; text is always available as an optional input and immediate fallback. The browser sends the recorder's native MIME type unchanged for ElevenLabs transcription. Nebius then produces this strict structure:
+
+```ts
+type FeedbackExtraction = {
+  dishId: DishId;
+  leftoverAmount: "none" | "some" | "most" | "unknown";
+  reason:
+    | "portion_too_large"
+    | "not_tasty"
+    | "dietary_mismatch"
+    | "other"
+    | "unknown";
+  reportedFacts: string[];
+  aiInferences: string[];
+  confidence: number;
+};
+```
+
+There is no score or rating anywhere in the feedback flow or operations summary. The model receives the exact closed dish list and cannot invent a `dishId`. A deterministic keyword interpreter handles missing keys, timeouts, and invalid model output, labelled `offline interpretation`.
+
+Before saving, the guest sees one plain sentence such as `Most of the Vegan Chickpeas Quinoa Salad left, portion too large`, with `Confirm` and `Not right, let me retype`. Guests do not edit individual fields. Confirm appends an anonymous timestamped feedback record and shows a plain thank-you. Retype returns to the text input and writes nothing.
+
+Feedback never unlocks or modifies an incentive. The existing free-coffee incentive remains solely an operations-authorized redirect lever. Operations may show leftover distribution and reason counts, but no average, score, or rating.
+
 ## External Services and Failure Handling
 
 Supabase is the only required hosted dependency for the cross-device prototype. A setup SQL file is emitted first and committed so the schema and seed can be installed immediately and reproducibly. Supabase credentials are supplied and wired in parallel with the local build rather than after it.
 
-Nebius uses the OpenAI-compatible SDK only inside `/api/staff-update`, with an eight-second timeout and strict JSON-schema output. Server-side validation rejects invented identifiers or invalid enums. Any timeout, API error, or invalid result invokes the deterministic keyword interpreter and labels the result as an offline interpretation.
+Nebius uses the OpenAI-compatible SDK only inside server routes, with an eight-second timeout and strict JSON-schema output. Server-side validation rejects invented identifiers or invalid enums. Any timeout, API error, or invalid result invokes the corresponding deterministic keyword interpreter and labels the result as an offline interpretation. Staff extraction and feedback extraction use separate schemas and handlers so a feedback failure cannot affect operational updates.
 
-ElevenLabs is a later-stage enhancement. Its route generates short English and German announcements server-side. The two stage-demo clips are committed under `public/audio/`; missing credentials or service failures fall back to those assets and then to visible text.
+ElevenLabs is a later-stage enhancement. Separate server routes transcribe native browser audio for staff and feedback flows and generate short English and German announcements. Transcription failures reveal the prepared or optional text input immediately. The two stage-demo announcement clips are committed under `public/audio/`; missing credentials or announcement failures fall back to those assets and then to visible text.
 
 Missing dish images render a neutral grey placeholder. Poll failures retain the last known state. Apply failures make no local optimistic mutation and keep the confirmation available for retry.
 
@@ -131,6 +159,8 @@ The automated test budget is intentionally limited to four high-value Vitest uni
 - recommendation ranking prefers the shorter queue and excludes the current station.
 
 No browser-testing dependency or browser binary is installed during the build window. Type checking and a production build still run. UI, microphone, polling, PWA installation, and cross-device behavior are verified manually on the available real phones.
+
+The isolated feedback route is verified manually for native voice upload, ElevenLabs transcription, strict Nebius interpretation, offline fallback, retype-without-write, append-on-confirm, thank-you copy, and an unchanged main-demo state outside the feedback array.
 
 After the first and subsequent deployments, the Vercel URL is tested with one guest client and one staff client against the Supabase row. The acceptance test is an `Item sold out` update for the Vegan Chickpeas Quinoa Salad causing Atrium to change status and the vegan recommendation to move within one polling interval without touching the guest client.
 
