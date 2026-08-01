@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { useBonaFlowStore } from '@/lib/store';
 
-/** Documented fallback interval when no real-time transport is available. */
+/** Shared cadence: backend poll and on-screen clock refresh. */
 export const LIVE_POLL_MS = 3000;
 
 export type LivePoll = {

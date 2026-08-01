@@ -14,11 +14,28 @@
 
 const EVENT_EPOCH_ISO = '2026-06-11T12:55:00';
 
-const epochMs = new Date(EVENT_EPOCH_ISO).getTime();
-const bootMs = Date.now();
+let epochMs = new Date(EVENT_EPOCH_ISO).getTime();
+let bootMs = Date.now();
 
 export function eventNow(): Date {
   return new Date(epochMs + (Date.now() - bootMs));
+}
+
+/**
+ * Keeps the demo clock in step with the other devices.
+ *
+ * Each device starts its event clock when the app opens, so a phone opened later
+ * would otherwise be minutes behind and stamp new reports with times older than
+ * the ones already stored. Feeding the newest timestamp seen from the backend in
+ * here moves this device forward to match; it never moves backwards.
+ */
+export function syncEventClock(isoTimestamp: string): void {
+  const parsed = new Date(isoTimestamp).getTime();
+  if (Number.isNaN(parsed)) return;
+  if (parsed > eventNow().getTime()) {
+    epochMs = parsed;
+    bootMs = Date.now();
+  }
 }
 
 function pad(value: number): string {
