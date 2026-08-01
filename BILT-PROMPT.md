@@ -137,6 +137,17 @@ capability, use the Expo module that covers both.
 ## PHASE 1 — the guest view, seeded, no backend
 
 ```
+First, fix the palette. Replace any terracotta or rust accent already in global.css
+and lib/theme.ts. The accent is DEEP GREEN (#0F766E). Terracotta on warm off-white
+is the default AI-app look and it collides with the status colours below, where red
+must mean urgent and nothing else. Keep the warm off-white background.
+
+Status colours are reserved and may not be reused anywhere else in the interface:
+  green  #0F766E  available
+  orange #F08A4B  running low or busy
+  red    #B4432B  sold out, closed or urgent
+  grey   #D8DDD6  no recent update
+
 Build a mobile-first React Native app called BonaFlow for a catering event.
 Tagline: "Find food faster. Keep every station flowing."
 No authentication, no login, no sign-up. Large tap targets, minimal text,
