@@ -63,6 +63,57 @@ export function findReward(rewardId: string): Reward | undefined {
   return REWARDS.find((reward) => reward.id === rewardId);
 }
 
+/** The most a single review can earn: rating + stated reason + spoken. */
+export const POINTS_MAX = POINTS_BASE + POINTS_REASON_BONUS + POINTS_VOICE_BONUS;
+
+/**
+ * The best this device can still earn for this dish. Zero once the dish has been
+ * rated from this phone — the screen has to say that before the guest speaks, not
+ * after.
+ */
+export function potentialPointsFor(input: {
+  deviceId: string;
+  dishId: string;
+  ratings: readonly MealRating[];
+}): number {
+  const already = input.ratings.some(
+    (rating) => rating.deviceId === input.deviceId && rating.dishId === input.dishId,
+  );
+  return already ? 0 : POINTS_MAX;
+}
+
+/**
+ * Where this phone stands against what the organiser is handing out.
+ *
+ * `claimable` — something is already paid for. `unlocks` — this one review is
+ * enough to reach the cheapest reward. `short` — it is not, and the line says by
+ * how much rather than dangling a reward that is out of reach.
+ */
+export type RewardProgress =
+  | { kind: 'claimable'; reward: Reward }
+  | { kind: 'unlocks'; reward: Reward }
+  | { kind: 'short'; reward: Reward; short: number };
+
+/** Cheapest first, without mutating the exported list. */
+function byCost(): readonly Reward[] {
+  return [...REWARDS].sort((left, right) => left.cost - right.cost);
+}
+
+export function rewardProgress(balance: number, potential: number): RewardProgress | null {
+  const ordered = byCost();
+  if (ordered.length === 0) return null;
+
+  // The best thing already paid for, so a guest with points in hand is told to
+  // spend them instead of being asked for more.
+  const affordable = ordered.filter((reward) => balance >= reward.cost);
+  const best = affordable.at(-1);
+  if (best !== undefined) return { kind: 'claimable', reward: best };
+
+  const cheapest = ordered[0];
+  if (balance + potential >= cheapest.cost) return { kind: 'unlocks', reward: cheapest };
+  return { kind: 'short', reward: cheapest, short: cheapest.cost - balance - potential };
+}
+
 /**
  * The points a rating earns. Zero when this device has already rated this dish —
  * the same test the backend makes, so the number on screen matches the number in

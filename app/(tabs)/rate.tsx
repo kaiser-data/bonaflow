@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { ChevronDown, ChevronUp, Gift } from 'lucide-react-native';
 
 import { DishChoice } from '@/components/rate/DishChoice';
+import { EarnNote } from '@/components/rate/EarnNote';
 import { LeftoverChoice } from '@/components/rate/LeftoverChoice';
 import { ReasonChips } from '@/components/rate/ReasonChips';
 import { StarInput } from '@/components/rate/StarInput';
@@ -15,8 +16,9 @@ import { Touchable } from '@/components/ui/Touchable';
 import { deviceId, ensureDeviceId } from '@/lib/device';
 import { interpretGuestRating } from '@/lib/interpretRating';
 import { buildTapDraft } from '@/lib/ratings';
-import { balanceFor } from '@/lib/rewards';
+import { balanceFor, potentialPointsFor, rewardProgress } from '@/lib/rewards';
 import {
+  findStation,
   useBonaFlowStore,
   type AudioAttachment,
   type LeftoverAmount,
@@ -94,6 +96,14 @@ export default function RateScreen() {
 
   const chosen = stationId !== null && dishId !== null;
   const typed = text.trim().length > 0;
+
+  // What stopping to say something is worth, shown above the microphone.
+  const potential = dishId === null ? 0 : potentialPointsFor({ deviceId: id, dishId, ratings });
+  const progress = rewardProgress(balance, potential);
+  const rewardStation =
+    progress === null || progress.reward.stationId === null
+      ? null
+      : (findStation(stations, progress.reward.stationId)?.name ?? null);
   const canReviewText = chosen && typed && busy === null;
   const canSubmitTaps =
     chosen && busy === null && (score !== null || leftover !== null || reasons.length > 0);
@@ -218,6 +228,8 @@ export default function RateScreen() {
             onLayout={(event) => settleScroll('mic', event.nativeEvent.layout.y)}
           >
             {notice === null ? null : <PermissionNotice message={notice} />}
+
+            <EarnNote potential={potential} progress={progress} where={rewardStation} />
 
             <HoldToTalkButton
               onRecorded={(audio) => void reviewVoiceNote(audio)}
