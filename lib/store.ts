@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { eventNowIso } from '@/lib/clock';
+import type { DraftInterpretation } from '@/lib/interpret';
 import { computeRecommendations, deriveStationStatus, describeUpdate } from '@/lib/stations';
 
 /**
@@ -332,13 +333,19 @@ type BonaFlowState = {
   selectedStationId: string;
   /** Pending report. Nothing in the shared data changes while this is set. */
   draft: UpdateDraft | null;
+  /**
+   * How the pending report was read — by the reading service or by the offline
+   * keyword fallback — plus what was heard, what was concluded and with what
+   * confidence. Display only: it is never written to the backend.
+   */
+  draftInterpretation: DraftInterpretation | null;
   setMode: (mode: AppMode | null) => void;
   setDietFilter: (filter: DietFilter) => void;
   selectStation: (stationId: string) => void;
   /** Replace the shared data with what the backend returned. */
   hydrate: (snapshot: SharedSnapshot) => void;
   /** Open the confirmation flow with an interpreted report. */
-  startDraft: (draft: UpdateDraft) => void;
+  startDraft: (draft: UpdateDraft, interpretation?: DraftInterpretation | null) => void;
   patchDraft: (patch: Partial<UpdateDraft>) => void;
   clearDraft: () => void;
   /** Apply the pending draft, then clear it. */
@@ -451,6 +458,7 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
   dietFilter: 'all',
   selectedStationId: SEEDED_STATIONS[0].id,
   draft: null,
+  draftInterpretation: null,
   setMode: (mode) => set({ mode }),
   setDietFilter: (dietFilter) => set({ dietFilter }),
   selectStation: (selectedStationId) => set({ selectedStationId }),
@@ -469,15 +477,15 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
         ? state.selectedStationId
         : (snapshot.stations[0]?.id ?? state.selectedStationId),
     })),
-  startDraft: (draft) => set({ draft }),
+  startDraft: (draft, interpretation = null) => set({ draft, draftInterpretation: interpretation }),
   patchDraft: (patch) =>
     set((state) => (state.draft === null ? state : { draft: { ...state.draft, ...patch } })),
-  clearDraft: () => set({ draft: null }),
+  clearDraft: () => set({ draft: null, draftInterpretation: null }),
   commitDraft: () => {
     const { draft } = get();
     if (draft === null) return;
     const { patch, write } = applyDraft(get(), draft);
-    set({ ...patch, draft: null });
+    set({ ...patch, draft: null, draftInterpretation: null });
     emitWrite(write);
   },
   applyReport: (draft) => {

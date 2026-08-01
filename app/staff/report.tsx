@@ -12,11 +12,11 @@ import { Card } from '@/components/ui/Card';
 import { MonoText } from '@/components/ui/MonoText';
 import { Screen } from '@/components/ui/Screen';
 import { Touchable } from '@/components/ui/Touchable';
+import { interpretStaffReport } from '@/lib/interpret';
 import type { PhotoSource } from '@/lib/photos';
 import {
   buildQuickActionDraft,
   buildVoiceDraft,
-  interpretReport,
   PERMISSION_FALLBACK_TEXT,
   type QuickAction,
 } from '@/lib/reports';
@@ -48,10 +48,12 @@ export default function StaffReportScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<QuickAction | null>(null);
   const [transcribing, setTranscribing] = useState(false);
+  const [reading, setReading] = useState(false);
   const [voiceHint, setVoiceHint] = useState<string | null>(null);
 
   const station = findStation(stations, selectedStationId) ?? stations[0];
   const lastAlert = alerts.length > 0 ? alerts[0] : null;
+  const canReview = text.trim().length > 0 && !reading && !transcribing;
 
   /** Quick actions apply straight away — no model, no network, no waiting. */
   const runQuickAction = (quickAction: QuickAction, dishId: string | null) => {
@@ -68,11 +70,23 @@ export default function StaffReportScreen() {
     runQuickAction(quickAction, null);
   };
 
-  /** Text and voice always go through the confirmation screen first. */
-  const reviewText = () => {
-    startDraft(
-      interpretReport({ text, stations, stationId: station.id, source: 'text', photoUri }),
-    );
+  /**
+   * Text and voice always go through the confirmation screen first. The sentence
+   * is read server-side; if that call fails, times out or comes back unusable,
+   * the deterministic keyword interpreter runs instead and the confirmation
+   * screen says so. Either way the staff member confirms every field.
+   */
+  const reviewText = async () => {
+    setReading(true);
+    const { draft, interpretation } = await interpretStaffReport({
+      text,
+      stations,
+      stationId: station.id,
+      source: 'text',
+      photoUri,
+    });
+    setReading(false);
+    startDraft(draft, interpretation);
     router.push('/staff-confirm');
   };
 
@@ -80,22 +94,23 @@ export default function StaffReportScreen() {
     setVoiceHint(null);
     setTranscribing(true);
     // The recording goes to the server-side voice service; the API key is never
-    // in this app. A transcript only supplies the words — the fields are still
-    // worked out by the deterministic interpreter and confirmed by hand.
+    // in this app. A transcript only supplies the words — the fields are read
+    // from it afterwards and confirmed by hand.
     const transcript = await transcribeVoiceNote(audio);
     setTranscribing(false);
 
     if (transcript.ok) {
-      startDraft(
-        interpretReport({
-          text: transcript.text,
-          stations,
-          stationId: station.id,
-          source: 'voice',
-          photoUri,
-          audio,
-        }),
-      );
+      setReading(true);
+      const { draft, interpretation } = await interpretStaffReport({
+        text: transcript.text,
+        stations,
+        stationId: station.id,
+        source: 'voice',
+        photoUri,
+        audio,
+      });
+      setReading(false);
+      startDraft(draft, interpretation);
       router.push('/staff-confirm');
       return;
     }
@@ -158,21 +173,21 @@ export default function StaffReportScreen() {
 
         <Touchable
           accessibilityLabel="Review this update"
-          accessibilityState={{ disabled: text.trim().length === 0 }}
-          disabled={text.trim().length === 0}
-          onPress={reviewText}
+          accessibilityState={{ disabled: !canReview }}
+          disabled={!canReview}
+          onPress={() => void reviewText()}
           style={{ minHeight: 60 }}
           className={
-            text.trim().length === 0
-              ? 'bg-surface border-border items-center justify-center rounded-3xl border px-5'
-              : 'bg-accent items-center justify-center rounded-3xl px-5'
+            canReview
+              ? 'bg-accent items-center justify-center rounded-3xl px-5'
+              : 'bg-surface border-border items-center justify-center rounded-3xl border px-5'
           }
         >
           <Text
             className={
-              text.trim().length === 0
-                ? 'text-muted text-lg font-semibold'
-                : 'text-accent-foreground text-lg font-semibold'
+              canReview
+                ? 'text-accent-foreground text-lg font-semibold'
+                : 'text-muted text-lg font-semibold'
             }
           >
             Review update
@@ -187,6 +202,8 @@ export default function StaffReportScreen() {
         {transcribing ? (
           <MonoText className="text-muted text-xs">turning that note into text…</MonoText>
         ) : null}
+
+        {reading ? <MonoText className="text-muted text-xs">reading that update…</MonoText> : null}
 
         {voiceHint === null ? null : (
           <MonoText className="text-muted text-xs">{voiceHint}</MonoText>

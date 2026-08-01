@@ -1,6 +1,7 @@
 import { Image, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
+import { InterpretationCard } from '@/components/staff/InterpretationCard';
 import { Card } from '@/components/ui/Card';
 import { ChoiceRow, type ChoiceOption } from '@/components/ui/ChoiceRow';
 import { MonoText } from '@/components/ui/MonoText';
@@ -63,6 +64,7 @@ export default function ConfirmReportScreen() {
   const router = useRouter();
   const stations = useBonaFlowStore((state) => state.stations);
   const draft = useBonaFlowStore((state) => state.draft);
+  const interpretation = useBonaFlowStore((state) => state.draftInterpretation);
   const patchDraft = useBonaFlowStore((state) => state.patchDraft);
   const clearDraft = useBonaFlowStore((state) => state.clearDraft);
   const commitDraft = useBonaFlowStore((state) => state.commitDraft);
@@ -112,6 +114,13 @@ export default function ConfirmReportScreen() {
 
   return (
     <Screen scroll keyboardAvoiding contentClassName="gap-6 px-5 py-5" bottomOffset={8}>
+      {interpretation === null ? null : (
+        <InterpretationCard
+          interpretation={interpretation}
+          photoAttached={draft.photoUri !== null}
+        />
+      )}
+
       <Card level="md" className="gap-2 rounded-3xl p-5">
         <MonoText className="text-foreground text-sm">Station: {station.name}</MonoText>
         <MonoText className="text-foreground text-sm">
