@@ -129,7 +129,9 @@ export default function RateConfirmScreen() {
         <Card level="sm" className="gap-1 rounded-3xl p-4">
           <MonoText className="text-muted text-[11px]">{describeAttachment(draft.audio)}</MonoText>
           <Text className="text-muted text-xs">
-            Your voice note stays with this review for the team.
+            Your recording is kept with these words so the kitchen can listen to it later. It is
+            filed against this phone, never a name, and it is only sent when you press the button
+            below.
           </Text>
         </Card>
       )}

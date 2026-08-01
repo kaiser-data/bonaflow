@@ -142,7 +142,12 @@ export default function ConfirmReportScreen() {
         </MonoText>
 
         {draft.audio === null ? null : (
-          <MonoText className="text-muted text-xs">{describeAttachment(draft.audio)}</MonoText>
+          <View className="gap-0.5">
+            <MonoText className="text-muted text-xs">{describeAttachment(draft.audio)}</MonoText>
+            <MonoText className="text-muted text-[10px]">
+              kept in the archive with this update
+            </MonoText>
+          </View>
         )}
 
         {draft.photoUri === null ? null : (

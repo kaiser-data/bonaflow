@@ -3,6 +3,7 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
 import { File, Paths } from 'expo-file-system';
 
 import { backendConfigured, bilt } from '@/lib/backend';
+import { readAudioBase64 } from '@/lib/audio';
 import type { AudioAttachment } from '@/lib/store';
 
 /**
@@ -43,10 +44,6 @@ type VoiceResponse = {
   extension?: string;
 };
 
-function isWeb(uri: string): boolean {
-  return Platform.OS === 'web' || uri.startsWith('blob:') || uri.startsWith('data:');
-}
-
 async function withTimeout<T>(work: Promise<T>, ms: number, onTimeout: T): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<T>((resolve) => {
@@ -82,41 +79,13 @@ async function callVoiceService(
   return await withTimeout(request, timeoutMs, null);
 }
 
-/** Reads a recording as base64, whatever container and platform produced it. */
-async function readRecordingBase64(uri: string): Promise<string | null> {
-  try {
-    if (!isWeb(uri)) return await new File(uri).base64();
-
-    // Web recorders hand back a blob URL, which the file system cannot open.
-    const response = await fetch(uri);
-    const blob = await response.blob();
-
-    return await new Promise<string | null>((resolve) => {
-      const reader = new FileReader();
-      reader.addEventListener('error', () => resolve(null), { once: true });
-      reader.addEventListener(
-        'load',
-        () => {
-          const result = typeof reader.result === 'string' ? reader.result : '';
-          const comma = result.indexOf(',');
-          resolve(comma === -1 ? null : result.slice(comma + 1));
-        },
-        { once: true },
-      );
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Sends a voice note for transcription. The container and mime type are passed
  * through exactly as the recorder reported them — iOS m4a, Android m4a or 3gp,
  * web webm or ogg — because the function accepts whatever arrives.
  */
 export async function transcribeVoiceNote(audio: AudioAttachment): Promise<TranscriptOutcome> {
-  const audioBase64 = await readRecordingBase64(audio.uri);
+  const audioBase64 = await readAudioBase64(audio.uri);
   if (audioBase64 === null || audioBase64.length === 0) {
     return { ok: false, reason: 'That recording could not be read, so type the update instead.' };
   }
@@ -323,5 +292,21 @@ export async function speakAnnouncement(text: string): Promise<SpeakOutcome> {
     return { ok: true };
   } catch {
     return { ok: false, reason: 'This device could not play the announcement.' };
+  }
+}
+
+/**
+ * Plays a clip straight from a link, used for the recordings kept in the archive.
+ * Nothing is cached: an archived note is listened to once by whoever is reading
+ * the feedback, and the link it came from expires.
+ */
+export async function playFromUrl(url: string): Promise<SpeakOutcome> {
+  if (url.trim().length === 0) return { ok: false, reason: 'There is no recording to play.' };
+
+  try {
+    await playAnnouncement(url);
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: 'This device could not play that recording.' };
   }
 }

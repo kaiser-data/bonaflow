@@ -349,6 +349,45 @@ export type MealRating = RatingDraft & {
   createdAt: string;
 };
 
+/** How the transcript kept with a recording was produced. */
+export type TranscriptSource = 'voice_service' | 'typed' | 'none';
+
+/** Which side of the service a recording came from. */
+export type RecordingKind = 'guest_rating' | 'staff_update';
+
+/**
+ * A voice note as the archive holds it.
+ *
+ * The recording itself is uploaded once and lives in the backend, not on the
+ * phone that made it, so the day can be listened to and analysed afterwards.
+ * `storagePath` is null while the upload is still in flight, and stays null with
+ * a reason in `uploadError` when the audio could not be stored — in that case the
+ * transcript is still kept, because the sentence is the part the kitchen needs.
+ */
+export type VoiceRecording = {
+  id: string;
+  kind: RecordingKind;
+  /** The rating or staff update this note belongs to. */
+  refId: string;
+  /** Anonymous device, never a person. Empty for staff notes. */
+  deviceId: string;
+  stationId: string;
+  dishId: string | null;
+  /** Path inside the backend audio bucket, or null when nothing was stored. */
+  storagePath: string | null;
+  mimeType: string;
+  extension: string;
+  durationMs: number;
+  bytes: number | null;
+  /** The words that were stored with it, in the language they were said in. */
+  transcript: string;
+  transcriptSource: TranscriptSource;
+  language: RatingLanguage;
+  /** Plain-language reason the audio was not stored. Null when it was. */
+  uploadError: string | null;
+  createdAt: string;
+};
+
 /** A reward a guest has taken, shown at the counter as proof. */
 export type Redemption = {
   id: string;
@@ -545,6 +584,8 @@ export type SharedSnapshot = {
   /** Every guest rating, newest first. Shared: operations reads the same rows. */
   ratings: readonly MealRating[];
   redemptions: readonly Redemption[];
+  /** Every voice note that has been filed, newest first. */
+  recordings: readonly VoiceRecording[];
 };
 
 /** A confirmed report, ready to be pushed to the backend. */
@@ -557,9 +598,21 @@ export type ReportWrite = {
   task: ReplenishmentTask | null;
 };
 
+/**
+ * A voice note on its way to the archive. The local file uri travels with it
+ * because the audio still has to be read off this device and uploaded; the row
+ * itself never carries a device path, since it would mean nothing tomorrow.
+ */
+export type RecordingWrite = {
+  kind: 'recording';
+  recording: VoiceRecording;
+  audio: AudioAttachment;
+};
+
 /** Every change the backend needs to hear about. */
 export type PendingWrite =
   | ReportWrite
+  | RecordingWrite
   | { kind: 'task_completed'; taskId: string; completedAt: string }
   | { kind: 'incentive'; incentive: Incentive | null }
   | { kind: 'rating'; rating: MealRating }
@@ -610,6 +663,8 @@ type BonaFlowState = {
   ratings: readonly MealRating[];
   /** Rewards guests have taken, newest first. */
   redemptions: readonly Redemption[];
+  /** Voice notes filed in the archive, newest first. Downloadable from operations. */
+  recordings: readonly VoiceRecording[];
   /** Pending guest review. Nothing is stored while this is set. */
   ratingDraft: RatingDraft | null;
   /** How the pending review was read. */
@@ -646,6 +701,49 @@ type BonaFlowState = {
 };
 
 /**
+ * Describes a voice note for the archive.
+ *
+ * Whether the words were spoken or typed is recorded rather than guessed: a note
+ * whose transcription failed and was typed in by hand must not later read as
+ * something a service heard.
+ */
+function buildRecording(input: {
+  kind: RecordingKind;
+  refId: string;
+  deviceId: string;
+  stationId: string;
+  dishId: string | null;
+  transcript: string;
+  /** True when the transcript came from the voice service rather than a keyboard. */
+  spoken: boolean;
+  language: RatingLanguage;
+  audio: AudioAttachment;
+  createdAt: string;
+}): VoiceRecording {
+  const transcript = input.transcript.trim();
+
+  return {
+    id: makeId('recording'),
+    kind: input.kind,
+    refId: input.refId,
+    deviceId: input.deviceId,
+    stationId: input.stationId,
+    dishId: input.dishId,
+    // Filled in by the backend once the audio is stored.
+    storagePath: null,
+    mimeType: input.audio.mimeType,
+    extension: input.audio.extension,
+    durationMs: input.audio.durationMs,
+    bytes: null,
+    transcript,
+    transcriptSource: transcript.length === 0 ? 'none' : input.spoken ? 'voice_service' : 'typed',
+    language: input.language,
+    uploadError: null,
+    createdAt: input.createdAt,
+  };
+}
+
+/**
  * The single write path for a confirmed report. Steps run in this exact order:
  *   1. save the update
  *   2. change that dish's availability
@@ -664,7 +762,7 @@ function applyDraft(
   state: BonaFlowState,
   draft: UpdateDraft,
   interpretation: UpdateInterpretation | null,
-): { patch: Partial<BonaFlowState>; write: ReportWrite } {
+): { patch: Partial<BonaFlowState>; write: ReportWrite; recording: RecordingWrite | null } {
   const createdAt = eventNowIso();
 
   // 1. save the update, together with how it was read
@@ -728,9 +826,39 @@ function applyDraft(
   // 6. recalculate the recommended station for each dietary filter
   const recommendations = computeRecommendations(stations);
 
+  // A spoken report also goes to the archive, so the note can be listened to
+  // later next to the fields it produced.
+  const recording =
+    draft.audio === null
+      ? null
+      : buildRecording({
+          kind: 'staff_update',
+          refId: update.id,
+          deviceId: '',
+          stationId: draft.stationId,
+          dishId: draft.dishId,
+          transcript: draft.note,
+          spoken: draft.source === 'voice',
+          language: 'other',
+          audio: draft.audio,
+          createdAt,
+        });
+
   return {
-    patch: { updates, stations, alerts, tasks, recommendations, revision: state.revision + 1 },
+    patch: {
+      updates,
+      stations,
+      alerts,
+      tasks,
+      recommendations,
+      revision: state.revision + 1,
+      recordings: recording === null ? state.recordings : [recording, ...state.recordings],
+    },
     write: { kind: 'report', update, station: station ?? null, alert, task },
+    recording:
+      recording === null || draft.audio === null
+        ? null
+        : { kind: 'recording', recording, audio: draft.audio },
   };
 }
 
@@ -750,6 +878,7 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
   draftInterpretation: null,
   ratings: [],
   redemptions: [],
+  recordings: [],
   ratingDraft: null,
   ratingInterpretation: null,
   lastRating: null,
@@ -766,6 +895,7 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
       tasks: snapshot.tasks,
       ratings: snapshot.ratings,
       redemptions: snapshot.redemptions,
+      recordings: snapshot.recordings,
       recommendations: computeRecommendations(snapshot.stations),
       revision: state.revision + 1,
       lastSyncedAt: eventNowIso(),
@@ -781,16 +911,20 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
   commitDraft: () => {
     const { draft, draftInterpretation } = get();
     if (draft === null) return;
-    const { patch, write } = applyDraft(get(), draft, draftInterpretation);
+    const { patch, write, recording } = applyDraft(get(), draft, draftInterpretation);
     set({ ...patch, draft: null, draftInterpretation: null });
     emitWrite(write);
+    // The report is filed first; the note follows it, so a slow upload can never
+    // hold up what the stations and guests need to see.
+    if (recording !== null) emitWrite(recording);
   },
   // Quick actions and the manual override are not read by anything, so they
   // carry no interpretation: there is nothing that was concluded rather than said.
   applyReport: (draft) => {
-    const { patch, write } = applyDraft(get(), draft, null);
+    const { patch, write, recording } = applyDraft(get(), draft, null);
     set(patch);
     emitWrite(write);
+    if (recording !== null) emitWrite(recording);
   },
   completeTask: (taskId) => {
     const completedAt = eventNowIso();
@@ -827,6 +961,7 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
     if (ratingDraft === null) return;
 
     const id = deviceId();
+    const createdAt = eventNowIso();
     const rating: MealRating = {
       ...ratingDraft,
       id: makeId('rating'),
@@ -839,8 +974,26 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
         reasons: ratingDraft.reasons,
         ratings: state.ratings,
       }),
-      createdAt: eventNowIso(),
+      createdAt,
     };
+
+    // A spoken review is kept as audio as well as words, so the kitchen can hear
+    // the tone and the day can be analysed properly afterwards.
+    const recording =
+      ratingDraft.audio === null
+        ? null
+        : buildRecording({
+            kind: 'guest_rating',
+            refId: rating.id,
+            deviceId: id,
+            stationId: rating.stationId,
+            dishId: rating.dishId,
+            transcript: rating.comment,
+            spoken: rating.source === 'voice',
+            language: rating.language,
+            audio: ratingDraft.audio,
+            createdAt,
+          });
 
     set({
       ratings: [rating, ...state.ratings],
@@ -848,8 +1001,12 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
       ratingInterpretation: null,
       lastRating: rating,
       revision: state.revision + 1,
+      recordings: recording === null ? state.recordings : [recording, ...state.recordings],
     });
     emitWrite({ kind: 'rating', rating });
+    if (recording !== null && ratingDraft.audio !== null) {
+      emitWrite({ kind: 'recording', recording, audio: ratingDraft.audio });
+    }
   },
   /**
    * Taking a reward. The balance is checked here so the button cannot spend

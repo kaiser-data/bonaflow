@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { LIVE_POLL_MS } from '@/hooks/useLivePoll';
 import { backendConfigured, bilt } from '@/lib/backend';
 import { syncEventClock } from '@/lib/clock';
+import { archiveRecording } from '@/lib/recordings';
 import {
   registerWriteBridge,
   useBonaFlowStore,
@@ -25,6 +26,8 @@ import {
   type RatingLanguage,
   type RatingSentiment,
   type RatingSource,
+  type RecordingKind,
+  type RecordingWrite,
   type Redemption,
   type ReplenishmentTask,
   type ReportAction,
@@ -37,7 +40,9 @@ import {
   type StationAlert,
   type StationStatus,
   type TaskStatus,
+  type TranscriptSource,
   type UpdateInterpretation,
+  type VoiceRecording,
 } from '@/lib/store';
 
 /**
@@ -62,8 +67,10 @@ import {
  * the network fully off — cannot be wiped by backend data that predates it.
  *
  * Everything goes through four SQL functions (`bonaflow_state`,
- * `bonaflow_apply_report`, `bonaflow_complete_task`, `bonaflow_set_incentive`).
- * There are no users and no per-user rules: one event, one shared dataset.
+ * `bonaflow_apply_report`, `bonaflow_complete_task`, `bonaflow_set_incentive`),
+ * plus two more for guest feedback and the `voice-archive` function, which is the
+ * only thing that touches audio storage. There are no users and no per-user
+ * rules: one event, one shared dataset.
  */
 
 type StationRow = {
@@ -166,6 +173,25 @@ type RedemptionRow = {
   created_at: string;
 };
 
+type RecordingRow = {
+  id: string;
+  kind: string;
+  ref_id: string;
+  device_id: string;
+  station_id: string;
+  dish_id: string | null;
+  storage_path: string | null;
+  mime_type: string;
+  extension: string;
+  duration_ms: number;
+  bytes: number | null;
+  transcript: string | null;
+  transcript_source: string;
+  language: string;
+  upload_error: string | null;
+  created_at: string;
+};
+
 /** Exactly what `bonaflow_state()` returns. */
 type StatePayload = {
   event: EventRow | null;
@@ -176,6 +202,7 @@ type StatePayload = {
   tasks: TaskRow[] | null;
   ratings: RatingRow[] | null;
   redemptions: RedemptionRow[] | null;
+  recordings: RecordingRow[] | null;
 };
 
 const DIET_TAGS: readonly DietTag[] = ['vegan', 'vegetarian', 'high_protein'];
@@ -234,6 +261,8 @@ const REASONS: readonly LeftoverReason[] = [
 const RATING_SOURCES: readonly RatingSource[] = ['voice', 'text', 'taps'];
 const LANGUAGES: readonly RatingLanguage[] = ['en', 'de', 'other'];
 const SENTIMENTS: readonly RatingSentiment[] = ['positive', 'mixed', 'negative', 'unclear'];
+const RECORDING_KINDS: readonly RecordingKind[] = ['guest_rating', 'staff_update'];
+const TRANSCRIPT_SOURCES: readonly TranscriptSource[] = ['voice_service', 'typed', 'none'];
 
 /**
  * Backend columns are plain text, so each value is matched against the set the
@@ -562,6 +591,32 @@ function toRedemption(row: RedemptionRow): Redemption {
   };
 }
 
+/**
+ * One archived voice note. `storage_path` is the only thing that proves the audio
+ * exists in the backend, so it is passed through as it is: null stays null, and
+ * the screen says the recording is missing rather than offering a dead link.
+ */
+function toRecording(row: RecordingRow): VoiceRecording {
+  return {
+    id: row.id,
+    kind: match(RECORDING_KINDS, row.kind) ?? 'guest_rating',
+    refId: row.ref_id,
+    deviceId: row.device_id,
+    stationId: row.station_id,
+    dishId: row.dish_id,
+    storagePath: row.storage_path,
+    mimeType: row.mime_type,
+    extension: row.extension,
+    durationMs: typeof row.duration_ms === 'number' ? row.duration_ms : 0,
+    bytes: typeof row.bytes === 'number' ? row.bytes : null,
+    transcript: row.transcript ?? '',
+    transcriptSource: match(TRANSCRIPT_SOURCES, row.transcript_source) ?? 'none',
+    language: match(LANGUAGES, row.language) ?? 'other',
+    uploadError: row.upload_error,
+    createdAt: row.created_at,
+  };
+}
+
 /** Single narrowing point for the backend answer. */
 function isStatePayload(value: unknown): value is StatePayload {
   const record = asRecord(value);
@@ -585,6 +640,7 @@ function toSnapshot(payload: unknown): SharedSnapshot | null {
     tasks: (payload.tasks ?? []).map(toTask),
     ratings: (payload.ratings ?? []).map(toRating),
     redemptions: (payload.redemptions ?? []).map(toRedemption),
+    recordings: (payload.recordings ?? []).map(toRecording),
   };
 }
 
@@ -700,8 +756,37 @@ async function fetchSnapshot(): Promise<SharedSnapshot | null> {
   return snapshot;
 }
 
+/**
+ * A voice note goes to the archive function rather than to SQL, because the audio
+ * has to be uploaded with it. It is drained on its own queue: an upload of a few
+ * hundred kilobytes on conference wifi must never hold up the three-second poll
+ * that the stations and guest screens depend on.
+ */
+const archiveOutbox: RecordingWrite[] = [];
+
+let archiveInFlight = false;
+
+async function runArchive(): Promise<void> {
+  if (archiveInFlight) return;
+  archiveInFlight = true;
+
+  try {
+    while (archiveOutbox.length > 0) {
+      const write = archiveOutbox[0];
+      const outcome = await archiveRecording(write.recording, write.audio);
+      // 'retry' means the archive was unreachable, so the note stays queued and
+      // goes up on a later tick. 'drop' means it was refused; the row the archive
+      // holds is then the truth, and the next fetch shows it.
+      if (outcome === 'retry') return;
+      archiveOutbox.shift();
+    }
+  } finally {
+    archiveInFlight = false;
+  }
+}
+
 /** Every write posts first and gets the new shared state back in the response. */
-async function push(write: PendingWrite): Promise<PushResult> {
+async function push(write: Exclude<PendingWrite, RecordingWrite>): Promise<PushResult> {
   if (write.kind === 'report') {
     return call('bonaflow_apply_report', { p_report: reportPayload(write) });
   }
@@ -725,7 +810,7 @@ async function push(write: PendingWrite): Promise<PushResult> {
 }
 
 /** Writes the backend has not accepted yet. Oldest first, applied in order. */
-const outbox: PendingWrite[] = [];
+const outbox: Exclude<PendingWrite, RecordingWrite>[] = [];
 
 let inFlight = false;
 let rerunRequested = false;
@@ -749,6 +834,7 @@ function newestTimestamp(snapshot: SharedSnapshot): string {
     ...snapshot.tasks.map((task) => task.createdAt),
     ...snapshot.ratings.map((rating) => rating.createdAt),
     ...snapshot.redemptions.map((redemption) => redemption.createdAt),
+    ...snapshot.recordings.map((recording) => recording.createdAt),
   ];
 
   return candidates.reduce((newest, current) => (current > newest ? current : newest), '');
@@ -805,6 +891,14 @@ async function runSync(): Promise<void> {
 }
 
 registerWriteBridge((write) => {
+  // Voice notes travel separately: they are large, they are not what a station
+  // screen is waiting for, and their queue must not pause hydration.
+  if (write.kind === 'recording') {
+    archiveOutbox.push(write);
+    void runArchive();
+    return;
+  }
+
   outbox.push(write);
   // Post first, then hydrate from what the backend returns.
   void runSync();
@@ -819,6 +913,8 @@ export function useBackendSync(intervalMs: number = LIVE_POLL_MS): void {
     void runSync();
     const timer = setInterval(() => {
       void runSync();
+      // Retries anything the archive has not accepted yet.
+      void runArchive();
     }, intervalMs);
     return () => clearInterval(timer);
   }, [intervalMs]);
