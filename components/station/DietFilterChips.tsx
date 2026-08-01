@@ -2,15 +2,20 @@ import { ScrollView, Text } from 'react-native';
 
 import { Touchable } from '@/components/ui/Touchable';
 import { useBonaFlowStore, type DietFilter } from '@/lib/store';
-import { DIET_FILTERS } from '@/lib/stations';
+import { dietFiltersFor } from '@/lib/stations';
 
 /**
  * Dietary filter chips. Selection is neutral dark, not green: colour only ever
  * carries meaning in the station status dot.
+ *
+ * Only filters that today's labels actually declare are offered, so nobody taps
+ * a chip that can only ever come back empty.
  */
 export function DietFilterChips() {
   const dietFilter = useBonaFlowStore((state) => state.dietFilter);
   const setDietFilter = useBonaFlowStore((state) => state.setDietFilter);
+  const stations = useBonaFlowStore((state) => state.stations);
+  const filters = dietFiltersFor(stations);
 
   return (
     <ScrollView
@@ -18,7 +23,7 @@ export function DietFilterChips() {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
     >
-      {DIET_FILTERS.map((filter) => (
+      {filters.map((filter) => (
         <FilterChip
           key={filter.value}
           label={filter.label}

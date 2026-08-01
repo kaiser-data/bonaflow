@@ -6,6 +6,7 @@ import { syncEventClock } from '@/lib/clock';
 import {
   registerWriteBridge,
   useBonaFlowStore,
+  type Allergen,
   type AudioAttachment,
   type DietTag,
   type Dish,
@@ -73,6 +74,12 @@ type DishRow = {
   name: string;
   tags: string[] | null;
   availability: string;
+  /** null means the label could not be read, which is not the same as empty. */
+  allergens: string[] | null;
+  ingredients: string[] | null;
+  image: string | null;
+  label_image: string | null;
+  note: string | null;
 };
 
 type UpdateRow = {
@@ -133,7 +140,23 @@ type StatePayload = {
   tasks: TaskRow[] | null;
 };
 
-const DIET_TAGS: readonly DietTag[] = ['vegan', 'vegetarian', 'gluten_free', 'halal'];
+const DIET_TAGS: readonly DietTag[] = ['vegan', 'vegetarian', 'high_protein'];
+const ALLERGENS: readonly Allergen[] = [
+  'gluten',
+  'crustaceans',
+  'egg',
+  'fish',
+  'peanut',
+  'soy',
+  'milk',
+  'nuts',
+  'celery',
+  'mustard',
+  'sesame',
+  'sulphite',
+  'lupin',
+  'mollusc',
+];
 const AVAILABILITIES: readonly DishAvailability[] = ['available', 'low', 'sold_out', 'uncertain'];
 const STATUSES: readonly StationStatus[] = ['available', 'busy', 'closed', 'no_update'];
 const QUEUES: readonly QueueLevel[] = ['low', 'medium', 'high', 'unknown'];
@@ -173,6 +196,18 @@ function asDietTags(value: string[] | null): readonly DietTag[] {
   return (value ?? [])
     .map((tag) => match(DIET_TAGS, tag))
     .filter((tag): tag is DietTag => tag !== null);
+}
+
+/**
+ * Allergens as the label declared them. `null` is preserved and never turned into
+ * an empty list: "not recorded" and "nothing printed" are different statements,
+ * and only one of them is safe to show as a complete list.
+ */
+function asAllergens(value: string[] | null): readonly Allergen[] | null {
+  if (value === null) return null;
+  return value
+    .map((entry) => match(ALLERGENS, entry))
+    .filter((entry): entry is Allergen => entry !== null);
 }
 
 function asAvailability(value: string | null): DishAvailability | null {
@@ -311,6 +346,11 @@ function toStations(stationRows: StationRow[], dishRows: DishRow[]): readonly St
         name: dish.name,
         tags: asDietTags(dish.tags),
         availability: asAvailability(dish.availability) ?? 'uncertain',
+        allergens: asAllergens(dish.allergens),
+        ingredients: dish.ingredients ?? [],
+        image: dish.image ?? '',
+        labelImage: dish.label_image,
+        note: dish.note,
       }));
 
     return {

@@ -123,28 +123,28 @@ export function buildQuickActionDraft(
 }
 
 /**
- * Scripted state change used by the hidden demo override: Vegan Thai Curry at
- * Green Kitchen sells out, the station turns red, an alert and a task appear.
- * The ids are the seeded ones, so it runs with no network at all.
+ * Scripted state change used by the hidden demo override: the Thai peanut bowl at
+ * Counter B sells out, the counter turns red, an alert and a task appear. The ids
+ * are the seeded ones, so it runs with no network at all.
  */
 export function buildOverrideDraft(): UpdateDraft {
   return {
     ...EMPTY_DRAFT,
     stationId: 'station-b',
-    dishId: 'dish-b1',
+    dishId: 'thai-peanut-tofu-bowl',
     availability: 'sold_out',
     queue: 'high',
     guestsWaiting: 20,
     action: 'replenish',
     priority: 'high',
-    note: 'Vegan Thai Curry sold out.',
+    note: 'Thai Peanut Bowl sold out.',
     source: 'manual_override',
   };
 }
 
 /** Exact text the report field is pre-filled with when a permission is denied. */
 export const PERMISSION_FALLBACK_TEXT =
-  'Vegan Thai Curry is almost finished, and approximately 20 guests are waiting.';
+  'The Thai Peanut Bowl is almost finished, and approximately 20 guests are waiting.';
 
 /** Checked in order, so "almost finished" is read as low, not sold out. */
 const AVAILABILITY_RULES: readonly { pattern: RegExp; value: DishAvailability }[] = [

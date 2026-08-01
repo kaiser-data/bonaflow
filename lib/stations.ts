@@ -23,19 +23,40 @@ import { statusColors, type StatusColor } from '@/lib/theme';
  * heuristics beyond the documented queue ordering.
  */
 
+/**
+ * Every dietary filter the app knows. Only tags a label actually declares appear
+ * on a dish, so a filter with nothing behind it today is hidden by the chips
+ * rather than offered and left empty — see `dietFiltersFor`.
+ */
 export const DIET_FILTERS: readonly { value: DietFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'vegan', label: 'Vegan' },
   { value: 'vegetarian', label: 'Vegetarian' },
-  { value: 'gluten_free', label: 'Gluten-free' },
-  { value: 'halal', label: 'Halal' },
+  { value: 'high_protein', label: 'High protein' },
 ];
+
+/**
+ * The filters worth showing for the menu currently on the counters: "All", plus
+ * only the tags at least one dish declares. Nobody is offered a filter that can
+ * only ever return nothing.
+ */
+export function dietFiltersFor(
+  stations: readonly Station[],
+): readonly { value: DietFilter; label: string }[] {
+  const declared = new Set<DietTag>();
+  for (const station of stations) {
+    for (const dish of station.dishes) {
+      for (const tag of dish.tags) declared.add(tag);
+    }
+  }
+
+  return DIET_FILTERS.filter((filter) => filter.value === 'all' || declared.has(filter.value));
+}
 
 const DIET_TAG_LABELS: Record<DietTag, string> = {
   vegan: 'vegan',
   vegetarian: 'vegetarian',
-  gluten_free: 'gluten-free',
-  halal: 'halal',
+  high_protein: 'high protein',
 };
 
 const STATUS_LABELS: Record<StationStatus, string> = {
@@ -359,8 +380,7 @@ export function computeRecommendations(
     all: null,
     vegan: null,
     vegetarian: null,
-    gluten_free: null,
-    halal: null,
+    high_protein: null,
   };
 
   for (const { value } of DIET_FILTERS) {

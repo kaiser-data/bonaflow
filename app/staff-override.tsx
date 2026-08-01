@@ -38,8 +38,8 @@ export default function StaffOverrideScreen() {
       </View>
 
       <Card level="sm" className="gap-2 rounded-3xl p-5">
-        <MonoText className="text-foreground text-sm">Station: Green Kitchen</MonoText>
-        <MonoText className="text-foreground text-sm">Dish: Vegan Thai Curry</MonoText>
+        <MonoText className="text-foreground text-sm">Station: Counter B</MonoText>
+        <MonoText className="text-foreground text-sm">Dish: Thai Peanut Bowl</MonoText>
         <MonoText className="text-foreground text-sm">Availability: sold out</MonoText>
         <MonoText className="text-foreground text-sm">Queue: high</MonoText>
         <MonoText className="text-foreground text-sm">Guests waiting: 20 (reported)</MonoText>
@@ -53,7 +53,7 @@ export default function StaffOverrideScreen() {
         <Card level="sm" className="gap-1 rounded-3xl p-5">
           <MonoText className="text-muted text-xs">applied {formatClock(appliedAt)}</MonoText>
           <Text className="text-foreground text-base">
-            Green Kitchen is now closed for Vegan Thai Curry. Guest and operations views have
+            Counter B is now sold out of the Thai Peanut Bowl. Guest and operations views have
             already changed.
           </Text>
           <MonoText className="text-muted text-xs">{updates.length} updates recorded</MonoText>

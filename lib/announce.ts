@@ -79,16 +79,14 @@ const DIET_OPTIONS_EN: Record<DietFilter, string> = {
   all: 'Other options',
   vegan: 'Vegan options',
   vegetarian: 'Vegetarian options',
-  gluten_free: 'Gluten-free options',
-  halal: 'Halal options',
+  high_protein: 'High-protein options',
 };
 
 const DIET_OPTIONS_DE: Record<DietFilter, string> = {
   all: 'Weitere Optionen',
   vegan: 'Vegane Optionen',
   vegetarian: 'Vegetarische Optionen',
-  gluten_free: 'Glutenfreie Optionen',
-  halal: 'Halal-Optionen',
+  high_protein: 'Proteinreiche Optionen',
 };
 
 const NO_TARGET_EN = 'Check the Stations list for other options.';

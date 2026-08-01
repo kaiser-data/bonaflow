@@ -20,7 +20,30 @@ import { computeRecommendations, deriveStationStatus, describeUpdate } from '@/l
 
 export type AppMode = 'guest' | 'staff' | 'operations';
 
-export type DietTag = 'vegan' | 'vegetarian' | 'gluten_free' | 'halal';
+/**
+ * Dietary tag as printed on the bowl label. Only a declared tag is ever used for
+ * filtering: the app never decides what a dish contains. A tag that was worked
+ * out from a photo rather than read off the label is deliberately absent here and
+ * explained in the dish's `note` instead.
+ */
+export type DietTag = 'vegan' | 'vegetarian' | 'high_protein';
+
+/** The 14 allergens an EU label declares. Bowl labels are printed in English. */
+export type Allergen =
+  | 'gluten'
+  | 'crustaceans'
+  | 'egg'
+  | 'fish'
+  | 'peanut'
+  | 'soy'
+  | 'milk'
+  | 'nuts'
+  | 'celery'
+  | 'mustard'
+  | 'sesame'
+  | 'sulphite'
+  | 'lupin'
+  | 'mollusc';
 
 /** Active dietary filter. `all` means no filtering. */
 export type DietFilter = 'all' | DietTag;
@@ -48,8 +71,23 @@ export type ReportSource = 'quick_action' | 'text' | 'voice' | 'manual_override'
 export type Dish = {
   id: string;
   name: string;
+  /** Declared on the label. The only thing dietary filtering uses. */
   tags: readonly DietTag[];
   availability: DishAvailability;
+  /**
+   * Allergens exactly as printed on the bowl label. `null` means the label could
+   * not be read — shown as "not recorded", never guessed and never inferred from
+   * the dish name.
+   */
+  allergens: readonly Allergen[] | null;
+  /** Seen in the open bowl. Descriptive only, never a declaration. */
+  ingredients: readonly string[];
+  /** Photo filename in the event asset set. Empty when there is no photo. */
+  image: string;
+  /** Photo of the printed label, when it was legible. */
+  labelImage: string | null;
+  /** Plain-language caveat shown under the dish, e.g. an undeclared tag. */
+  note: string | null;
 };
 
 export type Station = {
@@ -226,91 +264,154 @@ const EVENT: EventInfo = {
   serviceEnd: '14:00',
   incentive: {
     active: true,
-    text: 'Free coffee at Station C',
+    text: 'Free coffee at Counter C',
     appliesToStationId: 'station-c',
     authorizedBy: 'event_organiser',
-    expiresAt: '2026-06-11T13:15:00',
+    expiresAt: '2026-08-01T13:15:00',
   },
 };
 
+/**
+ * Today's real menu, as photographed and transcribed at Delta Campus on
+ * 1 August 2026 around 12:50. Dish ids and names come from the printed bowl
+ * labels; the allergen lists are what those labels say, and nothing more.
+ *
+ * `tags` holds only what a label declares. Mediterranean Cruise looks vegetarian
+ * in the bowl, but that word is not printed on its label, so it carries no tag
+ * and says why. The Thai peanut bowl's allergen list was not legible, so it is
+ * `null` — recorded as missing rather than filled in from the dish name.
+ *
+ * The three counters are the serving points guests walk up to. They are what the
+ * app shows before the first successful fetch, and what it keeps showing when the
+ * network is unavailable.
+ */
 const SEEDED_STATIONS: readonly Station[] = [
   {
     id: 'station-a',
     code: 'A',
-    name: 'Mediterranean Kitchen',
-    location: 'main hall, left',
+    name: 'Counter A',
+    location: 'Delta Campus lunch area',
     queue: 'medium',
     status: 'available',
-    lastUpdatedAt: '2026-06-11T12:41:00',
+    lastUpdatedAt: '2026-08-01T12:41:00',
     dishes: [
       {
-        id: 'dish-a1',
-        name: 'Mediterranean Chicken Bowl',
-        tags: ['halal'],
+        id: 'chicken-pasta-salad',
+        name: 'Chicken Pasta Salad',
+        tags: [],
         availability: 'available',
+        allergens: ['gluten', 'milk', 'mustard', 'sulphite'],
+        ingredients: [
+          'penne pasta',
+          'chicken',
+          'mozzarella pearls',
+          'kalamata olives',
+          'sun-dried tomato',
+          'roasted red pepper',
+          'herb dressing',
+        ],
+        image: 'chicken-pasta-salad.jpg',
+        labelImage: 'chicken-pasta-salad-label.jpg',
+        note: null,
       },
       {
-        id: 'dish-a2',
-        name: 'Roasted Vegetable Couscous',
-        tags: ['vegetarian'],
+        id: 'high-protein-chicken-rice',
+        name: 'High Protein Chicken and Rice',
+        tags: ['high_protein'],
         availability: 'available',
+        allergens: ['celery'],
+        ingredients: [
+          'grilled chicken',
+          'rice',
+          'cucumber',
+          'cherry tomato',
+          'pickled red cabbage',
+          'tomato sauce',
+        ],
+        image: 'high-protein-chicken-rice.jpg',
+        labelImage: 'high-protein-chicken-rice-label.jpg',
+        note: null,
       },
     ],
   },
   {
     id: 'station-b',
     code: 'B',
-    name: 'Green Kitchen',
-    location: 'by the stairs',
+    name: 'Counter B',
+    location: 'Delta Campus lunch area',
     queue: 'high',
     status: 'busy',
-    lastUpdatedAt: '2026-06-11T12:52:00',
+    lastUpdatedAt: '2026-08-01T12:52:00',
     dishes: [
       {
-        id: 'dish-b1',
-        name: 'Vegan Thai Curry',
-        tags: ['vegan', 'gluten_free'],
+        id: 'thai-peanut-tofu-bowl',
+        name: 'High Protein Thai Peanut Bowl with Chickpea & Tofu',
+        tags: ['vegan', 'high_protein'],
         availability: 'low',
+        // Not legible on the label. Left missing on purpose: the word "peanut"
+        // in the name is not evidence of the rest of the list.
+        allergens: null,
+        ingredients: [
+          'tofu',
+          'chickpeas',
+          'sweetcorn',
+          'carrot',
+          'cucumber',
+          'pickled red cabbage',
+          'peanut sauce',
+          'sesame seeds',
+        ],
+        image: 'thai-peanut-tofu-bowl.jpg',
+        labelImage: null,
+        note: 'The allergen list on this bowl was not legible, so it is not recorded here.',
       },
-      { id: 'dish-b2', name: 'Tofu Rice Bowl', tags: ['vegan'], availability: 'available' },
+      {
+        id: 'mediterranean-cruise',
+        name: 'Mediterranean Cruise',
+        tags: [],
+        availability: 'available',
+        allergens: ['milk', 'gluten', 'sulphite'],
+        ingredients: [
+          'rocket',
+          'feta',
+          'sun-dried tomato',
+          'roasted red pepper',
+          'balsamic dressing',
+        ],
+        image: 'mediterranean-cruise.jpg',
+        labelImage: 'mediterranean-cruise-label.jpg',
+        note: 'Vegetarian is not printed on this label, so it is not offered as a dietary filter.',
+      },
     ],
   },
   {
     id: 'station-c',
     code: 'C',
-    name: 'Pasta Corner',
-    location: 'back room',
+    name: 'Counter C',
+    location: 'Delta Campus lunch area',
     queue: 'low',
     status: 'available',
-    lastUpdatedAt: '2026-06-11T12:47:00',
+    lastUpdatedAt: '2026-08-01T12:47:00',
     dishes: [
       {
-        id: 'dish-c1',
-        name: 'Seasonal Vegetable Pasta',
-        tags: ['vegan', 'vegetarian'],
+        id: 'vegan-chickpeas-quinoa-salad',
+        name: 'Vegan Chickpeas Quinoa Salad',
+        tags: ['vegan'],
         availability: 'available',
+        allergens: ['mustard'],
+        ingredients: [
+          'chickpeas',
+          'quinoa',
+          'avocado',
+          'cherry tomato',
+          'roasted red pepper',
+          'pumpkin seeds',
+          'herb dressing',
+        ],
+        image: 'vegan-chickpeas-quinoa-salad.jpg',
+        labelImage: 'vegan-chickpeas-quinoa-salad-label.jpg',
+        note: null,
       },
-      {
-        id: 'dish-c2',
-        name: 'Tomato Basil Pasta',
-        tags: ['vegetarian'],
-        availability: 'available',
-      },
-    ],
-  },
-  {
-    id: 'station-d',
-    code: 'D',
-    name: 'Grab & Go',
-    location: 'near the entrance',
-    queue: 'low',
-    status: 'available',
-    lastUpdatedAt: '2026-06-11T12:35:00',
-    dishes: [
-      { id: 'dish-d1', name: 'Sandwiches', tags: [], availability: 'available' },
-      { id: 'dish-d2', name: 'Fruit', tags: ['vegan', 'vegetarian'], availability: 'available' },
-      { id: 'dish-d3', name: 'Salads', tags: ['vegan', 'vegetarian'], availability: 'available' },
-      { id: 'dish-d4', name: 'Drinks', tags: [], availability: 'available' },
     ],
   },
 ];

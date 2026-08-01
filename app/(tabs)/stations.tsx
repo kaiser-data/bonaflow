@@ -6,6 +6,7 @@ import { StationCard } from '@/components/station/StationCard';
 import { MonoText } from '@/components/ui/MonoText';
 import { Screen } from '@/components/ui/Screen';
 import { useLivePoll } from '@/hooks/useLivePoll';
+import { MENU_SOURCE_LINE } from '@/lib/menu';
 import { useBonaFlowStore, type Station } from '@/lib/store';
 import { dietPhrase, filterStations } from '@/lib/stations';
 
@@ -50,6 +51,7 @@ export default function StationsScreen() {
               <MonoText className="text-muted text-xs">
                 {event.venue} · lunch {event.serviceStart}–{event.serviceEnd}
               </MonoText>
+              <MonoText className="text-muted text-[11px]">{MENU_SOURCE_LINE}</MonoText>
             </View>
             <DietFilterChips />
           </View>
@@ -63,8 +65,9 @@ export default function StationsScreen() {
 
       <View className="border-border bg-background border-t px-5 py-4">
         <Text className="text-muted text-xs">
-          Demonstration data. Confirm allergens and ingredients with catering staff. Independent
-          hackathon prototype.
+          Allergens are shown as printed on the bowl label; where a label could not be read they are
+          marked not recorded. Always confirm with the catering team. Independent hackathon
+          prototype, not affiliated with Bella&Bona.
         </Text>
       </View>
     </Screen>

@@ -12,7 +12,8 @@
  * arrives.
  */
 
-const EVENT_EPOCH_ISO = '2026-06-11T12:55:00';
+/** Event day: the 8x Bella & Bona Mobile Hack lunch at Delta Campus. */
+const EVENT_EPOCH_ISO = '2026-08-01T12:55:00';
 
 let epochMs = new Date(EVENT_EPOCH_ISO).getTime();
 let bootMs = Date.now();
