@@ -49,7 +49,26 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     extra: {
       appStoreAppId: process.env.BILT_APP_STORE_APP_ID,
     },
-    plugins: ['expo-router', 'expo-font', ...nativePlugins],
+    plugins: [
+      'expo-router',
+      'expo-font',
+      [
+        'expo-audio',
+        {
+          microphonePermission:
+            'BonaFlow uses the microphone so catering staff can report station updates by voice.',
+        },
+      ],
+      [
+        'expo-image-picker',
+        {
+          cameraPermission:
+            'BonaFlow uses the camera so catering staff can photograph a serving tray.',
+          photosPermission: 'BonaFlow lets staff attach an existing photo of a serving tray.',
+        },
+      ],
+      ...nativePlugins,
+    ],
     experiments: {
       typedRoutes: true,
       reactCompiler: true,

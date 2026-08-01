@@ -1,10 +1,15 @@
 import { create } from 'zustand';
 
+import { eventNowIso } from '@/lib/clock';
+import { computeRecommendations, deriveStationStatus, describeUpdate } from '@/lib/stations';
+
 /**
  * Single in-memory store for BonaFlow.
  *
  * Everything the UI reads lives here, so the seeded arrays can later be
- * replaced by an API response without touching any screen.
+ * replaced by an API response without touching any screen. Guest, staff and
+ * operations screens all subscribe to this one store, which is why a staff
+ * report shows up in the guest view without anyone touching it.
  */
 
 export type AppMode = 'guest' | 'staff' | 'operations';
@@ -20,6 +25,19 @@ export type DishAvailability = 'available' | 'low' | 'sold_out' | 'uncertain';
 export type StationStatus = 'available' | 'busy' | 'closed' | 'no_update';
 
 export type QueueLevel = 'low' | 'medium' | 'high' | 'unknown';
+
+export type Priority = 'low' | 'medium' | 'high';
+
+/** Recommended operational action attached to a report. */
+export type ReportAction =
+  | 'replenish'
+  | 'restock_soon'
+  | 'add_staff'
+  | 'close_station'
+  | 'reopen_station'
+  | 'none';
+
+export type ReportSource = 'quick_action' | 'text' | 'voice' | 'manual_override';
 
 export type Dish = {
   id: string;
@@ -49,12 +67,91 @@ export type Announcement = {
   createdAt: string;
 };
 
+/** Attached audio, exactly as the recorder produced it on this device. */
+export type AudioAttachment = {
+  uri: string;
+  /** Container extension read from the URI, never hardcoded. */
+  extension: string;
+  /** Mime type derived from that container, never hardcoded. */
+  mimeType: string;
+  durationMs: number;
+};
+
+/**
+ * What a staff member reports, before anything is applied. Held in the store so
+ * it survives navigation to the confirmation screen, but it never touches
+ * stations, alerts or tasks until `commitDraft` runs.
+ */
+export type UpdateDraft = {
+  stationId: string;
+  dishId: string | null;
+  availability: DishAvailability | null;
+  queue: QueueLevel | null;
+  guestsWaiting: number | null;
+  action: ReportAction;
+  priority: Priority;
+  note: string;
+  source: ReportSource;
+  photoUri: string | null;
+  audio: AudioAttachment | null;
+};
+
+export type StaffUpdate = UpdateDraft & {
+  id: string;
+  createdAt: string;
+};
+
+export type StationAlert = {
+  id: string;
+  stationId: string;
+  dishId: string | null;
+  priority: Priority;
+  message: string;
+  recommendedAction: string;
+  createdAt: string;
+};
+
+export type TaskStatus = 'open' | 'done';
+
+export type ReplenishmentTask = {
+  id: string;
+  stationId: string;
+  dishId: string | null;
+  action: ReportAction;
+  priority: Priority;
+  status: TaskStatus;
+  createdAt: string;
+  completedAt: string | null;
+};
+
+/**
+ * Operational lever set by operations, never produced by a model. There are no
+ * accounts, points, balances or codes in this app: redemption is simply showing
+ * the recommendation screen at the station.
+ */
+export type Incentive = {
+  active: boolean;
+  text: string;
+  appliesToStationId: string;
+  authorizedBy: string;
+  /** ISO 8601 */
+  expiresAt: string;
+};
+
 export type EventInfo = {
   name: string;
   venue: string;
   guests: number;
   serviceStart: string;
   serviceEnd: string;
+  incentive: Incentive | null;
+};
+
+/** Cached recommendation, recalculated for every dietary filter on each update. */
+export type RecommendationRef = {
+  stationId: string;
+  dishId: string;
+  reason: string;
 };
 
 const EVENT: EventInfo = {
@@ -63,6 +160,13 @@ const EVENT: EventInfo = {
   guests: 250,
   serviceStart: '12:30',
   serviceEnd: '14:00',
+  incentive: {
+    active: true,
+    text: 'Free coffee at Station C',
+    appliesToStationId: 'station-c',
+    authorizedBy: 'event_organiser',
+    expiresAt: '2026-06-11T13:15:00',
+  },
 };
 
 const SEEDED_STATIONS: readonly Station[] = [
@@ -147,23 +251,172 @@ const SEEDED_STATIONS: readonly Station[] = [
   },
 ];
 
+let idCounter = 0;
+
+function makeId(prefix: string): string {
+  idCounter += 1;
+  return `${prefix}-${idCounter}`;
+}
+
 type BonaFlowState = {
   event: EventInfo;
   stations: readonly Station[];
   /** Reverse-chronological announcements. Empty for now. */
   announcements: readonly Announcement[];
+  /** Every confirmed staff report, newest first. */
+  updates: readonly StaffUpdate[];
+  /** Alerts raised by confirmed reports, newest first. */
+  alerts: readonly StationAlert[];
+  /** Replenishment tasks, newest first. */
+  tasks: readonly ReplenishmentTask[];
+  /** Recommended station per dietary filter, recalculated on every update. */
+  recommendations: Readonly<Record<DietFilter, RecommendationRef | null>>;
+  /** Bumped on every mutation so pollers can detect a change cheaply. */
+  revision: number;
   mode: AppMode | null;
   dietFilter: DietFilter;
+  /** Station the staff member is currently reporting for. */
+  selectedStationId: string;
+  /** Pending report. Nothing in the shared data changes while this is set. */
+  draft: UpdateDraft | null;
   setMode: (mode: AppMode | null) => void;
   setDietFilter: (filter: DietFilter) => void;
+  selectStation: (stationId: string) => void;
+  /** Open the confirmation flow with an interpreted report. */
+  startDraft: (draft: UpdateDraft) => void;
+  patchDraft: (patch: Partial<UpdateDraft>) => void;
+  clearDraft: () => void;
+  /** Apply the pending draft, then clear it. */
+  commitDraft: () => void;
+  /** Apply a report straight away (quick actions, manual override). */
+  applyReport: (draft: UpdateDraft) => void;
+  completeTask: (taskId: string) => void;
 };
+
+/**
+ * The single write path for a confirmed report. Steps run in this exact order:
+ *   1. save the update
+ *   2. change that dish's availability
+ *   3. change the station's status and lastUpdatedAt if warranted
+ *   4. create an alert
+ *   5. create a replenishment task
+ *   6. recalculate the recommended station for each dietary filter
+ * Steps 7 and 8 need no code: the guest and operations screens read this same
+ * store, so they re-render as soon as it changes.
+ */
+function applyDraft(state: BonaFlowState, draft: UpdateDraft): Partial<BonaFlowState> {
+  const createdAt = eventNowIso();
+
+  // 1. save the update
+  const update: StaffUpdate = { ...draft, id: makeId('update'), createdAt };
+  const updates = [update, ...state.updates];
+
+  // 2. + 3. dish availability, then station status and lastUpdatedAt
+  const stations = state.stations.map((station) => {
+    if (station.id !== draft.stationId) return station;
+
+    const { dishId, availability } = draft;
+    const dishes =
+      dishId !== null && availability !== null
+        ? station.dishes.map((dish) => (dish.id === dishId ? { ...dish, availability } : dish))
+        : station.dishes;
+
+    const queue = draft.queue ?? station.queue;
+
+    return {
+      ...station,
+      dishes,
+      queue,
+      status: deriveStationStatus({ dishes, queue, action: draft.action }),
+      lastUpdatedAt: createdAt,
+    };
+  });
+
+  const station = stations.find((entry) => entry.id === draft.stationId);
+  const dish = station?.dishes.find((entry) => entry.id === draft.dishId) ?? null;
+  const described = describeUpdate(update, station?.name ?? 'Station', dish?.name ?? null);
+
+  // 4. create an alert
+  const alerts: readonly StationAlert[] = [
+    {
+      id: makeId('alert'),
+      stationId: draft.stationId,
+      dishId: draft.dishId,
+      priority: draft.priority,
+      message: described.alertMessage,
+      recommendedAction: described.recommendedAction,
+      createdAt,
+    },
+    ...state.alerts,
+  ];
+
+  // 5. create a replenishment task, unless the report needs no follow-up
+  const tasks: readonly ReplenishmentTask[] =
+    draft.action === 'none'
+      ? state.tasks
+      : [
+          {
+            id: makeId('task'),
+            stationId: draft.stationId,
+            dishId: draft.dishId,
+            action: draft.action,
+            priority: draft.priority,
+            status: 'open',
+            createdAt,
+            completedAt: null,
+          },
+          ...state.tasks,
+        ];
+
+  // 6. recalculate the recommended station for each dietary filter
+  const recommendations = computeRecommendations(stations);
+
+  return { updates, stations, alerts, tasks, recommendations, revision: state.revision + 1 };
+}
 
 export const useBonaFlowStore = create<BonaFlowState>((set) => ({
   event: EVENT,
   stations: SEEDED_STATIONS,
   announcements: [],
+  updates: [],
+  alerts: [],
+  tasks: [],
+  recommendations: computeRecommendations(SEEDED_STATIONS),
+  revision: 0,
   mode: null,
   dietFilter: 'all',
+  selectedStationId: SEEDED_STATIONS[0].id,
+  draft: null,
   setMode: (mode) => set({ mode }),
   setDietFilter: (dietFilter) => set({ dietFilter }),
+  selectStation: (selectedStationId) => set({ selectedStationId }),
+  startDraft: (draft) => set({ draft }),
+  patchDraft: (patch) =>
+    set((state) => (state.draft === null ? state : { draft: { ...state.draft, ...patch } })),
+  clearDraft: () => set({ draft: null }),
+  commitDraft: () =>
+    set((state) =>
+      state.draft === null ? state : { ...applyDraft(state, state.draft), draft: null },
+    ),
+  applyReport: (draft) => set((state) => applyDraft(state, draft)),
+  completeTask: (taskId) =>
+    set((state) => ({
+      tasks: state.tasks.map((task) =>
+        task.id === taskId ? { ...task, status: 'done', completedAt: eventNowIso() } : task,
+      ),
+      revision: state.revision + 1,
+    })),
 }));
+
+export function findStation(
+  stations: readonly Station[],
+  stationId: string | null,
+): Station | undefined {
+  if (stationId === null) return undefined;
+  return stations.find((station) => station.id === stationId);
+}
+
+export function findDish(station: Station | undefined, dishId: string | null): Dish | undefined {
+  if (station === undefined || dishId === null) return undefined;
+  return station.dishes.find((dish) => dish.id === dishId);
+}

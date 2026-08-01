@@ -4,10 +4,15 @@ import type {
   DietTag,
   Dish,
   DishAvailability,
+  Incentive,
+  Priority,
   QueueLevel,
+  RecommendationRef,
+  ReportAction,
   Station,
   StationStatus,
 } from '@/lib/store';
+import { isStillValid } from '@/lib/clock';
 import { statusColors, type StatusColor } from '@/lib/theme';
 
 /**
@@ -74,6 +79,21 @@ const QUEUE_DESCRIPTORS: Record<QueueLevel, string> = {
   unknown: 'queue unknown',
 };
 
+const PRIORITY_LABELS: Record<Priority, string> = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+};
+
+const ACTION_LABELS: Record<ReportAction, string> = {
+  replenish: 'replenish',
+  restock_soon: 'restock soon',
+  add_staff: 'add staff',
+  close_station: 'close station',
+  reopen_station: 'reopen station',
+  none: 'no action needed',
+};
+
 /** low < medium < high < unknown */
 const QUEUE_RANK: Record<QueueLevel, number> = {
   low: 0,
@@ -81,6 +101,24 @@ const QUEUE_RANK: Record<QueueLevel, number> = {
   high: 2,
   unknown: 3,
 };
+
+/** Option lists used by the editable confirmation screen. */
+export const AVAILABILITY_OPTIONS: readonly DishAvailability[] = [
+  'available',
+  'low',
+  'sold_out',
+  'uncertain',
+];
+export const QUEUE_OPTIONS: readonly QueueLevel[] = ['low', 'medium', 'high', 'unknown'];
+export const PRIORITY_OPTIONS: readonly Priority[] = ['low', 'medium', 'high'];
+export const ACTION_OPTIONS: readonly ReportAction[] = [
+  'replenish',
+  'restock_soon',
+  'add_staff',
+  'close_station',
+  'reopen_station',
+  'none',
+];
 
 /** Word used in the "no station" sentence, e.g. "vegan". */
 export function dietPhrase(filter: DietFilter): string {
@@ -120,6 +158,14 @@ export function queueLabel(queue: QueueLevel): string {
 
 export function queueDescriptor(queue: QueueLevel): string {
   return QUEUE_DESCRIPTORS[queue];
+}
+
+export function priorityLabel(priority: Priority): string {
+  return PRIORITY_LABELS[priority];
+}
+
+export function actionLabel(action: ReportAction): string {
+  return ACTION_LABELS[action];
 }
 
 function dishMatchesFilter(dish: Dish, filter: DietFilter): boolean {
@@ -175,6 +221,89 @@ export function recommendStation(
   };
 }
 
+/**
+ * Recommendation for every dietary filter at once. Recalculated whenever a
+ * report is confirmed, so the guest view never has to work it out on demand.
+ */
+export function computeRecommendations(
+  stations: readonly Station[],
+): Record<DietFilter, RecommendationRef | null> {
+  const recommendations: Record<DietFilter, RecommendationRef | null> = {
+    all: null,
+    vegan: null,
+    vegetarian: null,
+    gluten_free: null,
+    halal: null,
+  };
+
+  for (const { value } of DIET_FILTERS) {
+    const result = recommendStation(stations, value);
+    recommendations[value] =
+      result === null
+        ? null
+        : { stationId: result.station.id, dishId: result.dish.id, reason: result.reason };
+  }
+
+  return recommendations;
+}
+
+/**
+ * Station status derived from the dishes on the counter, the queue and the
+ * reported action. Red means sold out or closed, so a sold-out dish turns the
+ * station red; orange covers running low or busy.
+ */
+export function deriveStationStatus(input: {
+  dishes: readonly Dish[];
+  queue: QueueLevel;
+  action: ReportAction;
+}): StationStatus {
+  if (input.action === 'close_station') return 'closed';
+  if (input.dishes.some((dish) => dish.availability === 'sold_out')) return 'closed';
+  if (input.dishes.some((dish) => dish.availability === 'low') || input.queue === 'high') {
+    return 'busy';
+  }
+  if (input.queue === 'unknown') return 'no_update';
+  return 'available';
+}
+
+/** Plain-language alert text for a report. No model involved. */
+export function describeUpdate(
+  report: {
+    availability: DishAvailability | null;
+    queue: QueueLevel | null;
+    guestsWaiting: number | null;
+    action: ReportAction;
+    priority: Priority;
+    note: string;
+  },
+  stationName: string,
+  dishName: string | null,
+): { alertMessage: string; recommendedAction: string } {
+  const subject = dishName === null ? stationName : `${dishName} at ${stationName}`;
+
+  const parts: string[] = [];
+  if (report.availability !== null) {
+    parts.push(`${subject} is ${availabilityLabel(report.availability)}`);
+  } else if (report.action === 'close_station') {
+    parts.push(`${stationName} is temporarily closed`);
+  } else if (report.queue !== null) {
+    parts.push(`${stationName} queue is ${queueLabel(report.queue)}`);
+  } else {
+    parts.push(`${stationName} reported an update`);
+  }
+
+  if (report.guestsWaiting !== null) {
+    parts.push(`approximately ${report.guestsWaiting} guests waiting`);
+  }
+
+  const recommendedAction =
+    report.action === 'none'
+      ? 'No action needed'
+      : `${actionLabel(report.action)} — priority ${priorityLabel(report.priority)}`;
+
+  return { alertMessage: `${parts.join(', ')}.`, recommendedAction };
+}
+
 /** Newest first. */
 export function sortAnnouncements(announcements: readonly Announcement[]): readonly Announcement[] {
   return [...announcements].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -187,4 +316,27 @@ export function formatClock(isoTimestamp: string): string {
   const hours = String(parsed.getHours()).padStart(2, '0');
   const minutes = String(parsed.getMinutes()).padStart(2, '0');
   return `${hours}:${minutes}`;
+}
+
+const AUTHORIZED_BY_LABELS: Record<string, string> = {
+  event_organiser: 'the event organiser',
+  operations: 'operations',
+  catering_lead: 'the catering lead',
+};
+
+/** "Offered by the event organiser · until 13:15" */
+export function incentiveAttribution(incentive: Incentive): string {
+  const who = AUTHORIZED_BY_LABELS[incentive.authorizedBy] ?? incentive.authorizedBy;
+  return `Offered by ${who} · until ${formatClock(incentive.expiresAt)}`;
+}
+
+/** The incentive to show on a station card, or null. Set by operations only. */
+export function incentiveForStation(
+  incentive: Incentive | null,
+  stationId: string,
+): Incentive | null {
+  if (incentive === null || !incentive.active) return null;
+  if (incentive.appliesToStationId !== stationId) return null;
+  if (!isStillValid(incentive.expiresAt)) return null;
+  return incentive;
 }

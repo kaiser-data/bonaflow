@@ -20,7 +20,7 @@ export default function ModeSelectScreen() {
       router.push('/stations');
       return;
     }
-    router.push(mode === 'staff' ? '/staff' : '/operations');
+    router.push(mode === 'staff' ? '/staff/report' : '/operations');
   };
 
   return (

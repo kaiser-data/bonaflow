@@ -5,6 +5,7 @@ import { DietFilterChips } from '@/components/station/DietFilterChips';
 import { StationCard } from '@/components/station/StationCard';
 import { MonoText } from '@/components/ui/MonoText';
 import { Screen } from '@/components/ui/Screen';
+import { useLivePoll } from '@/hooks/useLivePoll';
 import { useBonaFlowStore, type Station } from '@/lib/store';
 import { dietPhrase, filterStations } from '@/lib/stations';
 
@@ -12,10 +13,13 @@ export default function StationsScreen() {
   const stations = useBonaFlowStore((state) => state.stations);
   const dietFilter = useBonaFlowStore((state) => state.dietFilter);
   const event = useBonaFlowStore((state) => state.event);
+  // Staff updates arrive on their own: no manual refresh anywhere in the app.
+  const poll = useLivePoll();
 
   const visibleStations = useMemo(
     () => filterStations(stations, dietFilter),
-    [stations, dietFilter],
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- poll.revision intentionally forces a recompute on the 3s live poll fallback.
+    [stations, dietFilter, poll.revision],
   );
 
   const emptyMessage =
@@ -35,6 +39,7 @@ export default function StationsScreen() {
             <StationCard station={item} />
           </View>
         )}
+        extraData={poll.tick}
         ItemSeparatorComponent={() => <View className="h-4" />}
         contentContainerStyle={{ paddingTop: 8, paddingBottom: 24, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}

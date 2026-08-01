@@ -161,7 +161,16 @@ export default function RootLayout() {
           >
             <Stack.Screen name="index" options={{ title: 'BonaFlow', headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ title: 'BonaFlow', headerShown: false }} />
-            <Stack.Screen name="staff" options={{ title: 'Staff' }} />
+            <Stack.Screen name="staff" options={{ title: 'Staff', headerShown: false }} />
+            <Stack.Screen name="staff-confirm" options={{ title: 'Confirm update' }} />
+            <Stack.Screen
+              name="staff-override"
+              options={{
+                title: 'Demo override',
+                presentation: 'modal',
+                contentStyle: { backgroundColor: colors.background },
+              }}
+            />
             <Stack.Screen name="operations" options={{ title: 'Operations' }} />
           </Stack>
           <InstallPrompt />

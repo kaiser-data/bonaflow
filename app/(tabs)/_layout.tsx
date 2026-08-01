@@ -1,32 +1,13 @@
 import { Bell, Sparkles, UtensilsCrossed } from 'lucide-react-native';
-import { Tabs, useRouter } from 'expo-router';
-import { Platform, Text } from 'react-native';
+import { Tabs } from 'expo-router';
+import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Touchable } from '@/components/ui/Touchable';
-import { useBonaFlowStore } from '@/lib/store';
+import { SwitchModeButton } from '@/components/SwitchModeButton';
 import { colors } from '@/lib/theme';
 
 /** Tab bar content height, before the bottom safe-area inset is added. */
 const TAB_BAR_CONTENT_HEIGHT = 60;
-
-function SwitchModeButton() {
-  const router = useRouter();
-  const setMode = useBonaFlowStore((state) => state.setMode);
-
-  return (
-    <Touchable
-      accessibilityLabel="Switch mode"
-      onPress={() => {
-        setMode(null);
-        router.replace('/');
-      }}
-      className="flex-none items-end justify-center pr-4 pl-2"
-    >
-      <Text className="text-muted text-sm font-medium">Switch mode</Text>
-    </Touchable>
-  );
-}
 
 export default function GuestTabLayout() {
   const insets = useSafeAreaInsets();
