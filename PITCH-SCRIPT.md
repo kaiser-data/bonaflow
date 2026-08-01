@@ -79,14 +79,20 @@ Let them scan while Beat 1 runs. **Don't wait for them.**
 
 ---
 
-### Beat 5 — what the caterer gets (1:30)
+### Beat 5 — the dashboard, and why it's worth money (1:30)
 
 **Martin** *(switches to Operations)*
-> "Across the event: what got left, and why.
+> "This is the part you'd actually buy.
 >
-> Portion too large. Not the recipe — the amount. That's one number in a prep sheet, and it's the difference between food in a bin and food eaten.
+> **Nine of fourteen people left quinoa. Seven said the same words: portion too large.**
 >
-> These are the real dishes from your lunch today. The allergens are transcribed off the printed bowl labels — declared by the caterer, never guessed by us."
+> That's not a rating. That's a prep-sheet change — cook less of one component, at one site, tomorrow. **You knew after one lunch, not after a quarter of waste reports.**
+>
+> And it compounds. Same dish, same site, third event in a row — now you're not reacting to leftovers, **you're prepping for them before they happen.**"
+
+*(one beat)*
+
+> "Real dishes from your lunch today. Allergens transcribed off the printed bowl labels — declared by the caterer, never guessed by us."
 
 ---
 
@@ -97,6 +103,41 @@ Let them scan while Beat 1 runs. **Don't wait for them.**
 > **BonaFlow gets the reason, while the guest is still standing there."**
 
 *(stop talking)*
+
+---
+
+## The five selling points — for Q&A, the deck, and the investor question
+
+Lead with **2**. It is the one a caterer feels immediately.
+
+**1. You already have the waste. You don't have the reason.**
+Every caterer knows roughly how much comes back. Nobody knows *why*, so nobody can fix it.
+A number you can't act on is a report; a reason is a decision.
+
+**2. Leftovers become a prep decision, not a post-mortem.**
+"Portion too large, seven people, one dish, one site" is a line in tomorrow's prep sheet.
+This is the whole product: **the dashboard outputs an action, not a metric.**
+
+**3. It gets predictive fast.**
+Two or three events on the same dish and the pattern is not news any more — it's a standing
+adjustment. **You stop discovering over-portioning and start preventing it.** That's the shift
+from reporting waste to not producing it.
+
+**4. Menu decisions with evidence instead of instinct.**
+Which dishes get eaten, which get pushed away, which dietary options are asked for and missing.
+Right now that lives in the heads of the people on the counter and dies there.
+
+**5. Per event, per site, per dish — with the guest's own words attached.**
+A survey gives you an average a week late. This gives you the sentence, at the event, from the
+person holding the bowl. **And every reason is traceable to what somebody actually said.**
+
+**The framing that lands with an operator:** you are not selling them analytics. You are selling
+them *the reason*, which is the one input they have never had and the only one that changes what
+the kitchen does.
+
+**Do not attach a euro figure to any of this.** You cannot substantiate one today and a sharp
+founder will ask how you got it. Say "directional" and let them do the arithmetic — they already
+know their own food cost, and they will do it in their head faster than you can.
 
 ---
 
