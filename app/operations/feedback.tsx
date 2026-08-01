@@ -111,7 +111,7 @@ function FeedbackCard({ feedback }: { feedback: DishFeedback }) {
   return (
     <Card level="md" className="gap-4 rounded-3xl p-5">
       <View className="flex-row items-start gap-3">
-        <DishPhoto image={feedback.dish.image} name={feedback.dish.name} size={56} />
+        <DishPhoto image={feedback.dish.image} name={feedback.dish.name} />
         <View className="flex-1 gap-0.5">
           <Text className="text-foreground text-base font-semibold">{feedback.dish.name}</Text>
           <MonoText className="text-muted text-[11px]">

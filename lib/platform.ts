@@ -25,6 +25,25 @@ export const keyboardDismissMode =
 /** Minimum accessible touch target, in points. */
 export const MIN_TOUCH_TARGET = 44;
 
+/**
+ * Width of the app's content column.
+ *
+ * The layout is a phone layout: lines, cards and photo grids are sized for a
+ * thumb's reach. Let it stretch to a desktop window or a mirrored projector and
+ * the same layout reads as a broken table, so content is capped and centred.
+ */
+export const CONTENT_MAX_WIDTH = 480;
+
+/**
+ * Centres a full-width child inside a wider window. A no-op on a phone, whose
+ * width is below the cap.
+ */
+export const centeredContent: ViewStyle = {
+  width: '100%',
+  maxWidth: CONTENT_MAX_WIDTH,
+  alignSelf: 'center',
+};
+
 export type ShadowLevel = 'sm' | 'md' | 'lg';
 
 const SHADOW_TOKENS: Record<

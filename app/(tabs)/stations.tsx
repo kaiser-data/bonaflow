@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
+import { AllergenDisclaimer } from '@/components/guest/AllergenDisclaimer';
 import { DietFilterChips } from '@/components/station/DietFilterChips';
 import { StationCard } from '@/components/station/StationCard';
 import { MonoText } from '@/components/ui/MonoText';
@@ -69,13 +70,7 @@ export default function StationsScreen() {
         }
       />
 
-      <View className="border-border bg-background border-t px-5 py-4">
-        <Text className="text-muted text-xs">
-          Allergens are shown as printed on the bowl label; where a label could not be read they are
-          marked not recorded. Always confirm with the catering team. Independent hackathon
-          prototype, not affiliated with Bella&Bona.
-        </Text>
-      </View>
+      <AllergenDisclaimer />
     </Screen>
   );
 }

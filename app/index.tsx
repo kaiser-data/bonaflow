@@ -2,6 +2,7 @@ import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { MonoText } from '@/components/ui/MonoText';
+import { InstallPrompt } from '@/components/InstallPrompt';
 import { Screen } from '@/components/ui/Screen';
 import { Touchable } from '@/components/ui/Touchable';
 import { useBonaFlowStore, type AppMode } from '@/lib/store';
@@ -59,20 +60,26 @@ export default function ModeSelectScreen() {
         </Touchable>
       </View>
 
-      <View className="gap-1">
-        <Text className="text-muted text-base">{event.name}</Text>
-        <MonoText className="text-muted text-xs">
-          {event.venue} · {event.guests} guests · lunch {event.serviceStart}–{event.serviceEnd}
-        </MonoText>
-        <Touchable
-          accessibilityLabel="Join by scanning the event code"
-          onPress={() => router.push('/join')}
-          className="flex-none items-start justify-center"
-        >
-          <Text className="text-foreground text-base font-semibold underline">
-            Join by event code
-          </Text>
-        </Touchable>
+      <View className="gap-4">
+        <View className="gap-1">
+          <Text className="text-muted text-base">{event.name}</Text>
+          <MonoText className="text-muted text-xs">
+            {event.venue} · {event.guests} guests · lunch {event.serviceStart}–{event.serviceEnd}
+          </MonoText>
+          <Touchable
+            accessibilityLabel="Join by scanning the event code"
+            onPress={() => router.push('/join')}
+            className="flex-none items-start justify-center"
+          >
+            <Text className="text-foreground text-base font-semibold underline">
+              Join by event code
+            </Text>
+          </Touchable>
+        </View>
+
+        {/* Web only, and only here: installing is a start-screen decision, and on
+            the dish screens a floating banner would sit on the allergen line. */}
+        <InstallPrompt />
       </View>
     </Screen>
   );

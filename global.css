@@ -1,3 +1,9 @@
+/*
+ * Web font loader. The same stylesheet is also linked statically in
+ * public/index.html so the first paint has Inter; keeping it here as well means a
+ * build that does not use that template still loads the typeface. Inter is
+ * applied, and its fallback stack declared, in public/index.html.
+ */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @import 'tailwindcss';

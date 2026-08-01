@@ -32,6 +32,16 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
+    <!-- App typeface. Declared here rather than injected at runtime so the very
+         first paint already has it; a script-injected stylesheet arrives after the
+         first frame and the app visibly reflows from the fallback face. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
       /* These styles make the body full-height */
@@ -42,12 +52,49 @@
       /* These styles disable body scrolling if you are using <ScrollView> */
       body {
         overflow: hidden;
+        background-color: #faf6f0;
       }
       /* These styles make the root element full-height */
       #root {
         display: flex;
         height: 100%;
         flex: 1;
+        /* Phone layout, centred: the same cap as CONTENT_MAX_WIDTH in
+           lib/platform.ts. Without it the app stretches across a desktop window
+           or a mirrored projector and the column layout falls apart. */
+        width: 100%;
+        max-width: 480px;
+        margin: 0 auto;
+      }
+    </style>
+
+    <style id="app-typography">
+      :root {
+        --app-font-sans:
+          'Inter', 'Inter_400Regular', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, sans-serif;
+        --app-font-mono:
+          ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+      }
+
+      html,
+      body {
+        font-family: var(--app-font-sans);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+
+      /* react-native-web writes its own font on every text node it renders, so
+         inheriting from <body> is not enough — the app face needs a selector that
+         outranks the generated one. Monospaced text opts out through data-mono,
+         which components/ui/MonoText.tsx sets on web. */
+      #root [class]:not([data-mono]) {
+        font-family: var(--app-font-sans);
+      }
+
+      #root [data-mono] {
+        font-family: var(--app-font-mono);
       }
     </style>
   </head>

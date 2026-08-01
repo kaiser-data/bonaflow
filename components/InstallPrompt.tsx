@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, Pressable, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Platform, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { Text } from 'heroui-native';
+import { Touchable } from '@/components/ui/Touchable';
 
 /**
  * Install affordance for the PWA, web only:
@@ -14,6 +13,11 @@ import { Text } from 'heroui-native';
  *
  * Hidden when already installed (standalone display mode) and inside iframes
  * (the Bilt live preview embeds the app in one).
+ *
+ * Laid out in the normal flow, one line high, and mounted by the start screen
+ * only. It used to be pinned above the tab bar on every screen, which put it on
+ * top of the allergen line on the stations screen and made both unreadable. An
+ * optional convenience must never cover a line the app is required to show.
  */
 
 // Chrome's install event — not yet in lib.dom.
@@ -51,13 +55,9 @@ function isIosSafari(): boolean {
   return isIos && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
 }
 
-const TAB_BAR_HEIGHT = 49;
-
 export function InstallPrompt() {
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIosHint, setShowIosHint] = useState(false);
-  const insets = useSafeAreaInsets();
-  const bottom = insets.bottom + TAB_BAR_HEIGHT + 12;
 
   useEffect(() => {
     if (!isEligibleBrowserContext()) return undefined;
@@ -103,75 +103,46 @@ export function InstallPrompt() {
     })();
   }, [installEvent]);
 
-  const dismissIosHint = useCallback(() => {
-    setShowIosHint(false);
-    AsyncStorage.setItem(IOS_HINT_DISMISSED_KEY, 'true').catch(() => {});
-  }, []);
+  const dismiss = useCallback(() => {
+    setInstallEvent(null);
+    if (showIosHint) {
+      setShowIosHint(false);
+      AsyncStorage.setItem(IOS_HINT_DISMISSED_KEY, 'true').catch(() => {});
+    }
+  }, [showIosHint]);
 
   if (Platform.OS !== 'web') return null;
 
-  if (installEvent) {
-    return (
-      <View
-        style={{ bottom }}
-        className="border-border bg-card absolute right-4 left-4 z-50 flex-row items-center gap-3 rounded-lg border p-4 shadow-lg"
+  const canInstall = installEvent !== null;
+  if (!canInstall && !showIosHint) return null;
+
+  return (
+    <View className="border-border bg-surface flex-row items-center gap-1 rounded-2xl border pr-2 pl-3">
+      <Text className="text-foreground flex-1 text-xs" numberOfLines={1}>
+        {canInstall ? 'Add BonaFlow to your home screen' : 'Share, then “Add to Home Screen”'}
+      </Text>
+
+      <Touchable
+        accessibilityLabel={canInstall ? 'Not now' : 'Got it'}
+        onPress={dismiss}
+        pressedScale={1}
+        className="flex-none items-center justify-center px-2"
       >
-        <View className="flex-1">
-          <Text.Paragraph type="body-sm" weight="semibold">
-            Add to home screen
-          </Text.Paragraph>
-          <Text.Paragraph type="body-xs" color="muted">
-            Install this app for a full-screen experience
-          </Text.Paragraph>
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          className="rounded-md px-3 py-2"
-          onPress={() => setInstallEvent(null)}
-        >
-          <Text.Paragraph type="body-sm" weight="semibold" color="muted">
-            Not now
-          </Text.Paragraph>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          className="bg-primary rounded-md px-3 py-2"
+        <Text className="text-muted text-xs font-semibold">
+          {canInstall ? 'Not now' : 'Got it'}
+        </Text>
+      </Touchable>
+
+      {canInstall ? (
+        <Touchable
+          accessibilityLabel="Install this app"
           onPress={handleInstall}
+          className="bg-accent my-1.5 flex-none items-center justify-center rounded-xl px-3"
+          style={{ minHeight: 32 }}
         >
-          <Text.Paragraph type="body-sm" weight="semibold" className="text-primary-foreground">
-            Install
-          </Text.Paragraph>
-        </Pressable>
-      </View>
-    );
-  }
-
-  if (showIosHint) {
-    return (
-      <View
-        style={{ bottom }}
-        className="border-border bg-card absolute right-4 left-4 z-50 flex-row items-center gap-3 rounded-lg border p-4 shadow-lg"
-      >
-        <View className="flex-1">
-          <Text.Paragraph type="body-sm" weight="semibold">
-            Add to home screen
-          </Text.Paragraph>
-          <Text.Paragraph type="body-xs" color="muted">
-            Tap Share, then “Add to Home Screen” to install this app
-          </Text.Paragraph>
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          className="rounded-md px-3 py-2"
-          onPress={dismissIosHint}
-        >
-          <Text.Paragraph type="body-sm" weight="semibold" color="muted">
-            Got it
-          </Text.Paragraph>
-        </Pressable>
-      </View>
-    );
-  }
-
-  return null;
+          <Text className="text-accent-foreground text-xs font-semibold">Install</Text>
+        </Touchable>
+      ) : null}
+    </View>
+  );
 }

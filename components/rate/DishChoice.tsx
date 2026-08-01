@@ -47,8 +47,8 @@ export function DishChoice({
 
   if (selected !== undefined) {
     return (
-      <View className="border-foreground bg-surface flex-row items-center gap-3 rounded-3xl border p-3">
-        <DishPhoto image={selected.dish.image} name={selected.dish.name} size={44} />
+      <View className="border-foreground bg-surface flex-row items-center gap-3 rounded-2xl border p-3">
+        <DishPhoto image={selected.dish.image} name={selected.dish.name} />
 
         <View className="flex-1 gap-0.5">
           <Text className="text-foreground text-base font-semibold" numberOfLines={2}>
@@ -82,7 +82,7 @@ export function DishChoice({
             accessibilityLabel={`${dish.name} at ${station.name}${rated ? ', already rated on this phone' : ''}`}
             onPress={() => onSelect(station.id, dish.id)}
             style={{ width: TILE_WIDTH }}
-            className="border-border bg-surface flex-none items-center gap-2 rounded-3xl border p-2"
+            className="border-border bg-surface flex-none items-center gap-2 rounded-2xl border p-2"
           >
             <View>
               <DishPhoto image={dish.image} name={dish.name} size={TILE_PHOTO} />

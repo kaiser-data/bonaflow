@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SwitchModeButton } from '@/components/SwitchModeButton';
 import { Touchable } from '@/components/ui/Touchable';
-import { MIN_TOUCH_TARGET } from '@/lib/platform';
+import { centeredContent, MIN_TOUCH_TARGET } from '@/lib/platform';
 import { colors } from '@/lib/theme';
 
 /** Tab bar content height, before the bottom safe-area inset is added. */
@@ -72,7 +72,9 @@ export default function StaffTabLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: colors.background },
+        // Header and tab bar are capped and centred with the content, so a wide
+        // browser window shows one column instead of a stretched bar.
+        headerStyle: { backgroundColor: colors.background, ...centeredContent },
         headerTintColor: colors.foreground,
         headerTitleStyle: { color: colors.foreground, fontWeight: '600' },
         headerShadowVisible: false,
@@ -82,6 +84,7 @@ export default function StaffTabLayout() {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
           borderTopWidth: 1,
+          ...centeredContent,
           // The bottom inset is added to the bar height so tab items never sit
           // under the iPhone home indicator or the Android gesture bar.
           height: TAB_BAR_CONTENT_HEIGHT + insets.bottom,

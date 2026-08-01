@@ -2,7 +2,7 @@ import type { ReactNode, RefObject } from 'react';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { keyboardBehavior, keyboardDismissMode } from '@/lib/platform';
+import { centeredContent, keyboardBehavior, keyboardDismissMode } from '@/lib/platform';
 import { cn } from '@/lib/utils';
 
 export type ScreenEdge = 'top' | 'bottom' | 'left' | 'right';
@@ -37,7 +37,8 @@ const ALL_EDGES: readonly ScreenEdge[] = ['top', 'bottom', 'left', 'right'];
 
 /**
  * Screen shell that resolves real device insets (notch / Dynamic Island, Android
- * status bar, home indicator, gesture bar) instead of hardcoded padding.
+ * status bar, home indicator, gesture bar) instead of hardcoded padding, and keeps
+ * content in one centred column capped at CONTENT_MAX_WIDTH.
  */
 export function Screen({
   children,
@@ -59,6 +60,14 @@ export function Screen({
     paddingRight: edges.includes('right') ? insets.right : 0,
   };
 
+  // One centred column, capped at the content width, so a desktop browser or a
+  // projector mirror shows the phone layout rather than a stretched one.
+  const column = (
+    <View style={centeredContent} className={cn('flex-1', contentClassName)}>
+      {children}
+    </View>
+  );
+
   const content = scroll ? (
     <ScrollView
       ref={scrollRef}
@@ -68,11 +77,11 @@ export function Screen({
       keyboardDismissMode={keyboardDismissMode}
       showsVerticalScrollIndicator={false}
     >
-      <View className={cn('flex-1', contentClassName)}>{children}</View>
+      {column}
     </ScrollView>
   ) : (
-    <View style={insetStyle} className={cn('flex-1', contentClassName)}>
-      {children}
+    <View style={insetStyle} className="flex-1">
+      {column}
     </View>
   );
 

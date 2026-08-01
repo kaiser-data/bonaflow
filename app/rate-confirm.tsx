@@ -91,7 +91,7 @@ export default function RateConfirmScreen() {
         <View className="gap-5 px-5 py-3">
           {dish === undefined ? null : (
             <View className="flex-row items-center gap-3">
-              <DishPhoto image={dish.image} name={dish.name} size={44} />
+              <DishPhoto image={dish.image} name={dish.name} />
               <View className="flex-1 gap-0.5">
                 <Text className="text-foreground text-base font-semibold">{dish.name}</Text>
                 <MonoText className="text-muted text-[11px]">{station?.name ?? ''}</MonoText>

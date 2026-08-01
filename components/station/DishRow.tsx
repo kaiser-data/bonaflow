@@ -38,7 +38,7 @@ export function DishRow({ dish, compact = false, onRate }: DishRowProps) {
 
   const body = (
     <View className="flex-row items-start gap-3">
-      {compact ? null : <DishPhoto image={dish.image} name={dish.name} size={64} />}
+      {compact ? null : <DishPhoto image={dish.image} name={dish.name} />}
 
       <View className="flex-1 gap-2">
         <View className="flex-row items-start justify-between gap-3">
