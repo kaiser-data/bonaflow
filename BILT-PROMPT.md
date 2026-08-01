@@ -34,6 +34,57 @@ hour if you find them at 15:30. Three ways to see the app:
 
 ---
 
+## Dish images — two ways in, and one of them needs a command first
+
+Ten CC-licensed placeholders live in `assets/dishes/`, ~150 KB each. **Replace them with real
+photos at lunch** — see `assets/dishes/README.md`.
+
+### ⚠ The repo is PRIVATE, so the raw URLs below return 404 until you run this
+
+```bash
+gh repo edit kaiser-data/bonaflow --visibility public --accept-visibility-change-consequences
+```
+
+Verify with `curl -I https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/vegan-thai-curry.jpg`
+— you want `200`, not `404`.
+
+### Preferred: upload the folder to Bilt instead
+
+**Bundling the images beats fetching them**, and not for tidiness — ten remote image fetches on
+conference wifi during a live demo is exactly the failure you spent all morning designing out.
+Bundled images render with the network off. **Upload `assets/dishes/` to Bilt and reference the
+filenames**, then at 13:00 re-upload only the files you replaced with real lunch photos.
+
+### If you do use URLs, paste this
+
+```
+Use these dish images. Reference each one by its dish id so the file can be swapped
+later without a code change.
+
+https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/mediterranean-chicken-bowl.jpg
+https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/roasted-vegetable-couscous.jpg
+https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/vegan-thai-curry.jpg
+https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/tofu-rice-bowl.jpg
+https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/seasonal-vegetable-pasta.jpg
+https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/tomato-basil-pasta.jpg
+https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/sandwiches.jpg
+https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/fruit.jpg
+https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/salads.jpg
+https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/drinks.jpg
+
+Map them to dish ids by filename: mediterranean-chicken-bowl.jpg is the
+Mediterranean Chicken Bowl, vegan-thai-curry.jpg is the Vegan Thai Curry, and so on.
+Download them into the project's local assets at build time rather than fetching
+them at runtime — the app must render every dish image with the network switched
+off. Show a neutral grey placeholder box, never a broken-image icon, if one is
+missing.
+```
+
+**These are placeholders.** Real photos of the actual lunch dishes are better on every axis and
+you are shooting them at 12:30 anyway.
+
+---
+
 ## PHASE 0 — platform config, paste this first
 
 ```
