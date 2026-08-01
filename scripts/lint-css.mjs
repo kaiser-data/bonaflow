@@ -16,7 +16,11 @@ const report = (msg) => {
   console.error(msg);
 };
 
-for (const file of globSync('**/*.css', { exclude: ['**/node_modules/**'] })) {
+// dist/ is generated web-export output (minified, already validated at build time);
+// linting it only produces false positives from the recovery parser.
+for (const file of globSync('**/*.css', {
+  exclude: ['**/node_modules/**', 'dist/**'],
+})) {
   const code = readFileSync(file);
 
   try {
