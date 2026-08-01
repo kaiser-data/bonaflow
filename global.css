@@ -37,4 +37,104 @@
  * }
  */
 
+@layer theme {
+  :root {
+    /*
+     * BonaFlow — warm off-white catering operations palette.
+     * Light and dark carry the same values: the app is light-only, but HeroUI
+     * resolves native theme variables from the active variant table, so both
+     * must be defined for Expo Go / native to pick up the brand colors.
+     */
+    @variant light {
+      --background: oklch(0.968 0.009 79);
+      --foreground: oklch(0.26 0.014 62);
+
+      --surface: oklch(0.995 0.005 84);
+      --surface-foreground: var(--foreground);
+      --surface-secondary: oklch(0.978 0.008 80);
+      --surface-secondary-foreground: var(--foreground);
+      --surface-tertiary: oklch(0.955 0.011 78);
+      --surface-tertiary-foreground: var(--foreground);
+
+      --overlay: oklch(0.995 0.005 84);
+      --overlay-foreground: var(--foreground);
+
+      --muted: oklch(0.585 0.017 62);
+
+      --default: oklch(0.945 0.012 78);
+      --default-foreground: var(--foreground);
+
+      --accent: oklch(0.575 0.152 44);
+      --accent-foreground: oklch(0.99 0.006 84);
+
+      --field-background: oklch(0.995 0.005 84);
+      --field-foreground: var(--foreground);
+      --field-placeholder: var(--muted);
+      --field-border: oklch(0.898 0.017 76);
+
+      --success: oklch(0.595 0.118 152);
+      --success-foreground: oklch(0.99 0.006 152);
+
+      --warning: oklch(0.755 0.135 74);
+      --warning-foreground: oklch(0.28 0.05 74);
+
+      --danger: oklch(0.565 0.185 26);
+      --danger-foreground: oklch(0.99 0.006 26);
+
+      --segment: oklch(0.995 0.005 84);
+      --segment-foreground: var(--foreground);
+
+      --border: oklch(0.898 0.017 76);
+      --separator: oklch(0.872 0.019 76);
+      --focus: var(--accent);
+      --link: var(--accent);
+    }
+
+    @variant dark {
+      --background: oklch(0.968 0.009 79);
+      --foreground: oklch(0.26 0.014 62);
+
+      --surface: oklch(0.995 0.005 84);
+      --surface-foreground: var(--foreground);
+      --surface-secondary: oklch(0.978 0.008 80);
+      --surface-secondary-foreground: var(--foreground);
+      --surface-tertiary: oklch(0.955 0.011 78);
+      --surface-tertiary-foreground: var(--foreground);
+
+      --overlay: oklch(0.995 0.005 84);
+      --overlay-foreground: var(--foreground);
+
+      --muted: oklch(0.585 0.017 62);
+
+      --default: oklch(0.945 0.012 78);
+      --default-foreground: var(--foreground);
+
+      --accent: oklch(0.575 0.152 44);
+      --accent-foreground: oklch(0.99 0.006 84);
+
+      --field-background: oklch(0.995 0.005 84);
+      --field-foreground: var(--foreground);
+      --field-placeholder: var(--muted);
+      --field-border: oklch(0.898 0.017 76);
+
+      --success: oklch(0.595 0.118 152);
+      --success-foreground: oklch(0.99 0.006 152);
+
+      --warning: oklch(0.755 0.135 74);
+      --warning-foreground: oklch(0.28 0.05 74);
+
+      --danger: oklch(0.565 0.185 26);
+      --danger-foreground: oklch(0.99 0.006 26);
+
+      --segment: oklch(0.995 0.005 84);
+      --segment-foreground: var(--foreground);
+
+      --border: oklch(0.898 0.017 76);
+      --separator: oklch(0.872 0.019 76);
+      --focus: var(--accent);
+      --link: var(--accent);
+    }
+  }
+}
+
 @source './node_modules/heroui-native/lib';

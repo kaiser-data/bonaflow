@@ -2,6 +2,8 @@
 import '../global.css';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar, type StatusBarStyle } from 'expo-status-bar';
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -22,6 +24,7 @@ import {
   Stack,
 } from 'expo-router';
 
+import { colors } from '@/lib/theme';
 import { initPostHog } from '@/lib/posthog';
 import { registerServiceWorker } from '@/lib/registerServiceWorker';
 import { reportErrorToParent } from '@/lib/reportPreviewError';
@@ -45,6 +48,9 @@ export { ErrorBoundary };
 
 // Starter is light-only by default. Remove this when implementing requested dark mode.
 Uniwind.setTheme('light');
+
+// Dark glyphs stay legible on the warm off-white background on iOS and Android.
+const STATUS_BAR_STYLE: StatusBarStyle = 'dark';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -139,13 +145,25 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <HeroUINativeProvider>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ title: 'Habits', headerShown: false }} />
-        </Stack>
-        <InstallPrompt />
-      </HeroUINativeProvider>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
+      <SafeAreaProvider>
+        <HeroUINativeProvider>
+          {/* Dark glyphs stay legible on the warm off-white background on iOS and Android */}
+          <StatusBar style={STATUS_BAR_STYLE} translucent />
+          <Stack
+            screenOptions={{
+              headerStyle: { backgroundColor: colors.background },
+              headerTintColor: colors.foreground,
+              headerTitleStyle: { color: colors.foreground },
+              headerShadowVisible: false,
+              contentStyle: { backgroundColor: colors.background },
+            }}
+          >
+            <Stack.Screen name="(tabs)" options={{ title: 'BonaFlow', headerShown: false }} />
+          </Stack>
+          <InstallPrompt />
+        </HeroUINativeProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

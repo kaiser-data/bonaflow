@@ -15,7 +15,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     newArchEnabled: true,
     version: process.env.BILT_APP_VERSION ?? '1.0.0',
     orientation: 'portrait',
-    userInterfaceStyle: 'automatic',
+    userInterfaceStyle: 'light',
+    backgroundColor: '#FAF6F0',
     scheme: 'bonaflow',
     runtimeVersion: {
       policy: 'appVersion',
@@ -24,12 +25,19 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
+        NSMicrophoneUsageDescription:
+          'BonaFlow uses the microphone so catering staff can report station updates by voice.',
+        NSCameraUsageDescription:
+          'BonaFlow uses the camera so catering staff can photograph a serving tray.',
+        NSPhotoLibraryUsageDescription:
+          'BonaFlow lets staff attach an existing photo of a serving tray.',
       },
-      supportsTablet: true,
+      supportsTablet: false,
       bundleIdentifier: process.env.BILT_IOS_BUNDLE_ID ?? 'com.yourcompany.yourapp',
     },
     android: {
       package: process.env.BILT_ANDROID_PACKAGE ?? 'com.yourcompany.yourapp',
+      permissions: ['RECORD_AUDIO', 'CAMERA'],
     },
     web: {
       bundler: 'metro',
