@@ -618,6 +618,43 @@ export type PendingWrite =
   | { kind: 'rating'; rating: MealRating }
   | { kind: 'redemption'; redemption: Redemption };
 
+/**
+ * What the backend is currently doing, as far as this device can tell.
+ *
+ * `live` means it answered the last call. `offline` means it could not be
+ * reached; `refused` means it answered and said no — a different problem with a
+ * different fix, so the two are never merged. `unconfigured` means this build has
+ * no server address at all, which used to be indistinguishable from a dead
+ * network.
+ */
+export type ConnectionState = 'connecting' | 'live' | 'offline' | 'refused' | 'unconfigured';
+
+export type ConnectionStatus = {
+  state: ConnectionState;
+  /** Event-clock time of the last answer from the backend, not of the last change. */
+  lastContactAt: string | null;
+  /** Why the last attempt failed, in plain words. null while it is working. */
+  lastError: string | null;
+  /** Writes the backend has not accepted yet. */
+  pending: number;
+};
+
+/** One report from the sync layer, after every attempt. */
+export type ConnectionUpdate = {
+  state: ConnectionState;
+  lastError: string | null;
+  pending: number;
+  /** True when the backend answered at all, which is what stamps the contact time. */
+  answered: boolean;
+};
+
+const INITIAL_CONNECTION: ConnectionStatus = {
+  state: 'connecting',
+  lastContactAt: null,
+  lastError: null,
+  pending: 0,
+};
+
 let writeBridge: ((write: PendingWrite) => void) | null = null;
 
 /**
@@ -645,8 +682,14 @@ type BonaFlowState = {
   recommendations: Readonly<Record<DietFilter, RecommendationRef | null>>;
   /** Bumped on every mutation so pollers can detect a change cheaply. */
   revision: number;
-  /** Event-clock time of the last successful backend fetch. Never blanks the UI. */
+  /**
+   * Event-clock time of the last hydrate, i.e. when the shared data last changed.
+   * This is not a connection indicator: a working backend with nothing new to say
+   * leaves it untouched for as long as the event is quiet.
+   */
   lastSyncedAt: string | null;
+  /** Whether the backend is answering, and why not when it is not. */
+  connection: ConnectionStatus;
   mode: AppMode | null;
   dietFilter: DietFilter;
   /** Station the staff member is currently reporting for. */
@@ -683,6 +726,8 @@ type BonaFlowState = {
   selectStation: (stationId: string) => void;
   /** Replace the shared data with what the backend returned. */
   hydrate: (snapshot: SharedSnapshot) => void;
+  /** Called by the sync layer after every attempt; a no-op when nothing changed. */
+  setConnection: (update: ConnectionUpdate) => void;
   /** Open the confirmation flow with an interpreted report. */
   startDraft: (draft: UpdateDraft, interpretation?: UpdateInterpretation | null) => void;
   patchDraft: (patch: Partial<UpdateDraft>) => void;
@@ -879,6 +924,7 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
   recommendations: computeRecommendations(SEEDED_STATIONS),
   revision: 0,
   lastSyncedAt: null,
+  connection: INITIAL_CONNECTION,
   mode: null,
   dietFilter: 'all',
   selectedStationId: SEEDED_STATIONS[0].id,
@@ -913,6 +959,26 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
         ? state.selectedStationId
         : (snapshot.stations[0]?.id ?? state.selectedStationId),
     })),
+  setConnection: (update) =>
+    set((state) => {
+      const current = state.connection;
+      const lastContactAt = update.answered ? eventNowIso() : current.lastContactAt;
+      const unchanged =
+        current.state === update.state &&
+        current.lastError === update.lastError &&
+        current.pending === update.pending &&
+        current.lastContactAt === lastContactAt;
+      // A poll every three seconds must not re-render every subscriber for nothing.
+      if (unchanged) return state;
+      return {
+        connection: {
+          state: update.state,
+          lastError: update.lastError,
+          pending: update.pending,
+          lastContactAt,
+        },
+      };
+    }),
   startDraft: (draft, interpretation = null) => set({ draft, draftInterpretation: interpretation }),
   patchDraft: (patch) =>
     set((state) => (state.draft === null ? state : { draft: { ...state.draft, ...patch } })),

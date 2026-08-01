@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { File, Paths } from 'expo-file-system';
 
-import { backendConfigured, bilt } from '@/lib/backend';
+import { bilt } from '@/lib/backend';
 import { readAudioBase64 } from '@/lib/audio';
 import type { AudioAttachment } from '@/lib/store';
 
@@ -62,11 +62,12 @@ async function callVoiceService(
   body: Record<string, unknown>,
   timeoutMs: number,
 ): Promise<VoiceResponse | null> {
-  if (!backendConfigured) return null;
+  const client = bilt;
+  if (client === null) return null;
 
   const request = (async (): Promise<VoiceResponse | null> => {
     try {
-      const { data, error } = await bilt.functions.invoke<VoiceResponse>('elevenlabs-voice', {
+      const { data, error } = await client.functions.invoke<VoiceResponse>('elevenlabs-voice', {
         body,
       });
       if (error !== null || data === null) return null;

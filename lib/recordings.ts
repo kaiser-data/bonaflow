@@ -1,5 +1,5 @@
 import { formatDuration, readAudioBase64 } from '@/lib/audio';
-import { backendConfigured, bilt } from '@/lib/backend';
+import { bilt } from '@/lib/backend';
 import type { AudioAttachment, VoiceRecording } from '@/lib/store';
 
 /**
@@ -62,11 +62,12 @@ async function callArchive(
   body: Record<string, unknown>,
   timeoutMs: number,
 ): Promise<ArchiveResponse | null> {
-  if (!backendConfigured) return null;
+  const client = bilt;
+  if (client === null) return null;
 
   const request = (async (): Promise<ArchiveResponse | null> => {
     try {
-      const { data, error } = await bilt.functions.invoke<ArchiveResponse>('voice-archive', {
+      const { data, error } = await client.functions.invoke<ArchiveResponse>('voice-archive', {
         body,
       });
       if (error !== null || data === null) return null;

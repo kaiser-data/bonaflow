@@ -7,6 +7,7 @@ import { MonoText } from '@/components/ui/MonoText';
 import { Screen } from '@/components/ui/Screen';
 import { useLivePoll } from '@/hooks/useLivePoll';
 import { formatAge } from '@/lib/clock';
+import { connectionLine } from '@/lib/connection';
 import {
   rankReasons,
   reasonLabel,
@@ -33,6 +34,7 @@ export default function OperationsFeedbackScreen() {
   const ratings = useBonaFlowStore((state) => state.ratings);
   const redemptions = useBonaFlowStore((state) => state.redemptions);
   const lastSyncedAt = useBonaFlowStore((state) => state.lastSyncedAt);
+  const connection = useBonaFlowStore((state) => state.connection);
   const poll = useLivePoll();
 
   const rows = useMemo(
@@ -54,8 +56,10 @@ export default function OperationsFeedbackScreen() {
       <View className="gap-1">
         <Text className="text-foreground text-2xl font-semibold">Guest feedback</Text>
         <MonoText className="text-muted text-xs">
-          {ratings.length} {ratings.length === 1 ? 'review' : 'reviews'} · {scored} scored ·{' '}
-          {lastSyncedAt === null ? 'not synced yet' : `synced ${formatClock(lastSyncedAt)}`}
+          {ratings.length} {ratings.length === 1 ? 'review' : 'reviews'} · {scored} scored
+        </MonoText>
+        <MonoText className="text-muted text-[11px]">
+          {connectionLine(connection, lastSyncedAt)}
         </MonoText>
       </View>
 

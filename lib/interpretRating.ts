@@ -1,4 +1,4 @@
-import { backendConfigured, bilt } from '@/lib/backend';
+import { bilt } from '@/lib/backend';
 import { detectLanguage, interpretRatingText, OFFLINE_RATING_LABEL } from '@/lib/ratings';
 import type {
   AudioAttachment,
@@ -149,11 +149,12 @@ async function withTimeout<T>(work: Promise<T>, ms: number, onTimeout: T): Promi
 }
 
 async function callReader(body: Record<string, unknown>): Promise<RatingResponse | null> {
-  if (!backendConfigured) return null;
+  const client = bilt;
+  if (client === null) return null;
 
   const request = (async (): Promise<RatingResponse | null> => {
     try {
-      const { data, error } = await bilt.functions.invoke<RatingResponse>('interpret-rating', {
+      const { data, error } = await client.functions.invoke<RatingResponse>('interpret-rating', {
         body,
       });
       if (error !== null || data === null) return null;

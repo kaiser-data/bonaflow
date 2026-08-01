@@ -8,6 +8,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Touchable } from '@/components/ui/Touchable';
 import { useLivePoll } from '@/hooks/useLivePoll';
 import { formatAge } from '@/lib/clock';
+import { connectionLine } from '@/lib/connection';
 import {
   exportTranscripts,
   recordingKindLabel,
@@ -39,6 +40,7 @@ export default function OperationsRecordingsScreen() {
   const recordings = useBonaFlowStore((state) => state.recordings);
   const stations = useBonaFlowStore((state) => state.stations);
   const lastSyncedAt = useBonaFlowStore((state) => state.lastSyncedAt);
+  const connection = useBonaFlowStore((state) => state.connection);
   const poll = useLivePoll();
 
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -139,8 +141,10 @@ export default function OperationsRecordingsScreen() {
               <Text className="text-foreground text-2xl font-semibold">Voice archive</Text>
               <MonoText className="text-muted text-xs">
                 {summary.total} {summary.total === 1 ? 'note' : 'notes'} · {summary.stored} with
-                audio stored · {summary.duration} total ·{' '}
-                {lastSyncedAt === null ? 'not synced yet' : `synced ${formatClock(lastSyncedAt)}`}
+                audio stored · {summary.duration} total
+              </MonoText>
+              <MonoText className="text-muted text-[11px]">
+                {connectionLine(connection, lastSyncedAt)}
               </MonoText>
             </View>
 

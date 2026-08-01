@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 import { LIVE_POLL_MS } from '@/hooks/useLivePoll';
-import { backendConfigured, bilt } from '@/lib/backend';
+import { bilt } from '@/lib/backend';
 import { syncEventClock } from '@/lib/clock';
 import { archiveRecording } from '@/lib/recordings';
 import {
@@ -9,6 +9,7 @@ import {
   useBonaFlowStore,
   type Allergen,
   type AudioAttachment,
+  type ConnectionState,
   type DietTag,
   type Dish,
   type DishAvailability,
@@ -65,6 +66,15 @@ import {
  * kept in an outbox and retried on every tick; while the outbox is not empty,
  * hydration is paused, so a local-only change — the hidden demo override with
  * the network fully off — cannot be wiped by backend data that predates it.
+ *
+ * Two failures that look alike are kept apart, because mixing them loses data.
+ * "Could not be reached" leaves the write queued; "answered and refused it"
+ * removes it, since retrying a call the database has rejected would loop forever.
+ * The client library reports BOTH as an error object rather than throwing, so they
+ * are told apart by whether the error carries a database code (see `classify`).
+ * Every attempt also records what happened on `store.connection`, so a screen can
+ * say whether the server is answering instead of inferring it from a timestamp
+ * that only moves when the data changes.
  *
  * Everything goes through four SQL functions (`bonaflow_state`,
  * `bonaflow_apply_report`, `bonaflow_complete_task`, `bonaflow_set_incentive`),
@@ -738,15 +748,131 @@ type PushOutcome = 'ok' | 'retry' | 'drop';
 
 type PushResult = { outcome: PushOutcome; snapshot: SharedSnapshot | null };
 
-async function call(name: string, args: Record<string, unknown> | undefined): Promise<PushResult> {
-  if (!backendConfigured) return { outcome: 'retry', snapshot: null };
+/**
+ * A call that hangs must not stop the poll for good. Without this, one request
+ * left open by dropped conference wifi kept `inFlight` true forever and the app
+ * never spoke to the backend again for the rest of the session — indistinguishable
+ * from a broken backend, and only fixable by restarting the app.
+ */
+const CALL_TIMEOUT_MS = 10000;
+
+const TIMED_OUT = Symbol('timed out');
+
+async function withTimeout<T>(work: PromiseLike<T>, ms: number): Promise<T | typeof TIMED_OUT> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
+    timer = setTimeout(() => resolve(TIMED_OUT), ms);
+  });
 
   try {
-    const { data, error } = await bilt.rpc(name, args);
-    if (error !== null) return { outcome: 'drop', snapshot: null };
+    return await Promise.race([work, timeout]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+type Failure = { retry: boolean; reason: string };
+
+/**
+ * Why a call failed, and whether it is worth sending again.
+ *
+ * This distinction is the whole reliability story of the app. The client library
+ * does NOT throw when the network is gone: it returns an ordinary error object
+ * with an empty `code` and a transport message in it. Treating that as a refusal
+ * — which is what happened before — silently deleted every report, review and
+ * redemption made while the wifi was down, because a refused write is removed
+ * from the outbox and never retried.
+ *
+ * A genuine answer from the database always carries a code (`42501`, `22P02`,
+ * `PGRST202`, …). No code means nothing ever reached it, so the write stays
+ * queued.
+ */
+function classify(error: { message?: string; code?: string } | null): Failure {
+  const code = error?.code ?? '';
+  const message = error?.message ?? '';
+  const transport =
+    code.length === 0 || /fetch|network|timeout|timed out|abort|connect|offline/i.test(message);
+
+  if (transport) {
+    return {
+      retry: true,
+      reason:
+        message.length === 0
+          ? 'no answer from the event server'
+          : `no answer from the event server (${message})`,
+    };
+  }
+
+  return {
+    retry: false,
+    reason: `the event server refused the call: ${message.length === 0 ? code : message}`,
+  };
+}
+
+function pendingCount(): number {
+  return outbox.length + archiveOutbox.length;
+}
+
+function reportConnection(
+  state: ConnectionState,
+  lastError: string | null,
+  answered: boolean,
+): void {
+  useBonaFlowStore.getState().setConnection({
+    state,
+    lastError,
+    pending: pendingCount(),
+    answered,
+  });
+}
+
+/** Refreshes only the count of writes still waiting, leaving the verdict alone. */
+function reportPending(): void {
+  const { connection, setConnection } = useBonaFlowStore.getState();
+  setConnection({
+    state: connection.state,
+    lastError: connection.lastError,
+    pending: pendingCount(),
+    answered: false,
+  });
+}
+
+async function call(name: string, args: Record<string, unknown> | undefined): Promise<PushResult> {
+  const client = bilt;
+  if (client === null) {
+    reportConnection('unconfigured', 'this build has no event server address', false);
+    return { outcome: 'retry', snapshot: null };
+  }
+
+  try {
+    const result = await withTimeout(client.rpc(name, args), CALL_TIMEOUT_MS);
+
+    if (result === TIMED_OUT) {
+      reportConnection(
+        'offline',
+        `the event server did not answer within ${Math.round(CALL_TIMEOUT_MS / 1000)} s`,
+        false,
+      );
+      return { outcome: 'retry', snapshot: null };
+    }
+
+    const { data, error } = result;
+    if (error !== null) {
+      const failure = classify(error);
+      reportConnection(failure.retry ? 'offline' : 'refused', failure.reason, !failure.retry);
+      return { outcome: failure.retry ? 'retry' : 'drop', snapshot: null };
+    }
+
+    reportConnection('live', null, true);
     return { outcome: 'ok', snapshot: toSnapshot(data) };
-  } catch {
-    // Network failure. The caller keeps the last known state and tries again.
+  } catch (thrown) {
+    // Some transports still throw. Either way nothing reached the backend, so the
+    // caller keeps the last known state and the write stays queued.
+    const failure = classify({
+      message: thrown instanceof Error ? thrown.message : String(thrown),
+      code: '',
+    });
+    reportConnection('offline', failure.reason, false);
     return { outcome: 'retry', snapshot: null };
   }
 }
@@ -779,6 +905,7 @@ async function runArchive(): Promise<void> {
       // holds is then the truth, and the next fetch shows it.
       if (outcome === 'retry') return;
       archiveOutbox.shift();
+      reportPending();
     }
   } finally {
     archiveInFlight = false;
@@ -854,6 +981,7 @@ async function drainOutbox(): Promise<{ drained: boolean; snapshot: SharedSnapsh
     // forever, and the next fetch shows what the backend actually holds.
     outbox.shift();
     snapshot = result.snapshot;
+    reportPending();
   }
 
   return { drained: true, snapshot };
@@ -895,11 +1023,13 @@ registerWriteBridge((write) => {
   // screen is waiting for, and their queue must not pause hydration.
   if (write.kind === 'recording') {
     archiveOutbox.push(write);
+    reportPending();
     void runArchive();
     return;
   }
 
   outbox.push(write);
+  reportPending();
   // Post first, then hydrate from what the backend returns.
   void runSync();
 });

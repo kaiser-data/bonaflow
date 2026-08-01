@@ -1,4 +1,4 @@
-import { backendConfigured, bilt } from '@/lib/backend';
+import { bilt } from '@/lib/backend';
 import { interpretReport } from '@/lib/reports';
 import { issueTypeFor, verifyRedirect } from '@/lib/stations';
 import type {
@@ -142,11 +142,12 @@ async function withTimeout<T>(work: Promise<T>, ms: number, onTimeout: T): Promi
 
 /** null means the call could not be completed at all. */
 async function callInterpreter(body: Record<string, unknown>): Promise<InterpretResponse | null> {
-  if (!backendConfigured) return null;
+  const client = bilt;
+  if (client === null) return null;
 
   const request = (async (): Promise<InterpretResponse | null> => {
     try {
-      const { data, error } = await bilt.functions.invoke<InterpretResponse>('interpret-report', {
+      const { data, error } = await client.functions.invoke<InterpretResponse>('interpret-report', {
         body,
       });
       if (error !== null || data === null) return null;

@@ -48,6 +48,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     extra: {
       appStoreAppId: process.env.BILT_APP_STORE_APP_ID,
+      // Second route for the backend credentials: read when the config is
+      // evaluated, so the app still connects if Metro's cached transform of
+      // lib/backend.ts predates the credentials. See lib/backend.ts.
+      biltUrl: process.env.EXPO_PUBLIC_BILT_URL,
+      biltAnonKey: process.env.EXPO_PUBLIC_BILT_ANON_KEY,
     },
     plugins: [
       'expo-router',

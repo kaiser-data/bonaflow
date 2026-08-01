@@ -7,7 +7,8 @@ import { Card } from '@/components/ui/Card';
 import { MonoText } from '@/components/ui/MonoText';
 import { Screen } from '@/components/ui/Screen';
 import { useLivePoll } from '@/hooks/useLivePoll';
-import { eventNow, formatAge, toLocalIso } from '@/lib/clock';
+import { eventNow, toLocalIso } from '@/lib/clock';
+import { connectionLine } from '@/lib/connection';
 import { findDish, findStation, useBonaFlowStore } from '@/lib/store';
 import {
   DIET_FILTERS,
@@ -32,6 +33,7 @@ export default function OperationsOverviewScreen() {
   const stations = useBonaFlowStore((state) => state.stations);
   const recommendations = useBonaFlowStore((state) => state.recommendations);
   const lastSyncedAt = useBonaFlowStore((state) => state.lastSyncedAt);
+  const connection = useBonaFlowStore((state) => state.connection);
   const poll = useLivePoll();
 
   const crowded = useMemo(
@@ -66,9 +68,7 @@ export default function OperationsOverviewScreen() {
           {event.venue} · {event.guests} guests · live {clock}
         </MonoText>
         <MonoText className="text-muted text-[11px]">
-          {lastSyncedAt === null
-            ? 'no answer from the event server yet · showing the state held on this device'
-            : `synced ${formatClock(lastSyncedAt)} · ${formatAge(lastSyncedAt)} ago · refreshes every 3 s`}
+          {connectionLine(connection, lastSyncedAt)}
         </MonoText>
       </View>
 
