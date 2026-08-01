@@ -1,0 +1,72 @@
+{
+  "_source": "Photographed at Delta Campus, 1 Aug 2026, ~12:50. Dish names and allergens transcribed from the printed Bella&Bona label on each bowl lid. Ingredients are OBSERVED from the open-bowl photo and are NOT caterer-declared — they are descriptive only and must never be presented as an allergen or dietary guarantee.",
+  "_declaredBy": "caterer",
+  "_dataDate": "2026-08-01",
+  "_verify": "thai-peanut-tofu-bowl allergens were not legible in the photo. Confirm from the bowl or the label before the demo, or leave the field null and render 'not recorded'. DO NOT GUESS THEM.",
+
+  "dishes": [
+    {
+      "id": "chicken-pasta-salad",
+      "name": "Chicken Pasta Salad",
+      "labelAllergens": ["gluten", "milk", "mustard", "sulphite"],
+      "dietTags": [],
+      "observedIngredients": ["penne pasta", "chicken", "mozzarella pearls", "kalamata olives", "sun-dried tomato", "roasted red pepper", "herb dressing"],
+      "image": "chicken-pasta-salad.jpg",
+      "labelImage": "chicken-pasta-salad-label.jpg",
+      "declaredBy": "caterer",
+      "dataDate": "2026-08-01"
+    },
+    {
+      "id": "mediterranean-cruise",
+      "name": "Mediterranean Cruise",
+      "labelAllergens": ["milk", "gluten", "sulphite"],
+      "dietTags": ["vegetarian"],
+      "observedIngredients": ["rocket", "feta", "sun-dried tomato", "roasted red pepper", "balsamic dressing"],
+      "image": "mediterranean-cruise.jpg",
+      "labelImage": "mediterranean-cruise-label.jpg",
+      "declaredBy": "caterer",
+      "dataDate": "2026-08-01",
+      "_note": "vegetarian inferred from visible contents, NOT from the label. Verify or drop the tag."
+    },
+    {
+      "id": "high-protein-chicken-rice",
+      "name": "High Protein Chicken and Rice",
+      "labelAllergens": ["celery"],
+      "dietTags": ["high_protein"],
+      "observedIngredients": ["grilled chicken", "rice", "cucumber", "cherry tomato", "pickled red cabbage", "tomato sauce"],
+      "image": "high-protein-chicken-rice.jpg",
+      "labelImage": "high-protein-chicken-rice-label.jpg",
+      "declaredBy": "caterer",
+      "dataDate": "2026-08-01"
+    },
+    {
+      "id": "thai-peanut-tofu-bowl",
+      "name": "High Protein Thai Peanut Bowl with Chickpea & Tofu",
+      "labelAllergens": null,
+      "dietTags": ["vegan", "high_protein"],
+      "observedIngredients": ["tofu", "chickpeas", "sweetcorn", "carrot", "cucumber", "pickled red cabbage", "peanut sauce", "sesame seeds"],
+      "image": "thai-peanut-tofu-bowl.jpg",
+      "labelImage": null,
+      "declaredBy": "caterer",
+      "dataDate": "2026-08-01",
+      "_note": "ALLERGENS NOT LEGIBLE IN PHOTO. Render 'allergens not recorded — ask the catering team'. Peanut is in the dish name, but do not synthesise a full allergen list from the name."
+    },
+    {
+      "id": "vegan-chickpeas-quinoa-salad",
+      "name": "Vegan Chickpeas Quinoa Salad",
+      "labelAllergens": ["mustard"],
+      "dietTags": ["vegan"],
+      "observedIngredients": ["chickpeas", "quinoa", "avocado", "cherry tomato", "roasted red pepper", "pumpkin seeds", "herb dressing"],
+      "image": "vegan-chickpeas-quinoa-salad.jpg",
+      "labelImage": "vegan-chickpeas-quinoa-salad-label.jpg",
+      "declaredBy": "caterer",
+      "dataDate": "2026-08-01"
+    }
+  ],
+
+  "_observations": {
+    "qrOnEveryLid": "Every bowl lid carries a QR code alongside the printed label. Bowl identity already exists physically — this is not something the product has to invent.",
+    "reusableBowls": "Bowls are Vytal reusable containers (embossed VYTAL), delivered in Thermobox crates. Matches the AGB: containers remain B&B property and are scanned before delivery and after collection.",
+    "labelFormat": "Red dish name / grey allergen list / green BELLABONA wordmark. Allergens are printed in English."
+  }
+}
