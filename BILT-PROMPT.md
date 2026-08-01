@@ -368,6 +368,118 @@ have cleared the 14:15 gate and everything after it is upside.
 
 ---
 
+## CORRECTION A — real event, real dishes ⚠ paste AFTER Phase 2.5 is working
+
+**Do not paste this until the two-device sync test passes.** It changes data only; it must not
+touch the backend wiring 2.5 established.
+
+```
+Data correction. Change the event and the dishes to the real ones. Do NOT change
+the backend sync, the store shape, the screens, or any logic added in the last
+step — only the seeded content and the strings that name it.
+
+EVENT
+  name:   "8x × Bella&Bona Mobile Hackathon"
+  venue:  "Delta Campus, Berlin"
+  lunch:  12:30-14:00
+Replace every occurrence of "Future of Work Summit Berlin".
+
+STATIONS — keep four, but rename them to fit the venue:
+  station-a  Main Hall     "main hall, left"
+  station-b  Atrium        "by the stairs"
+  station-c  Terrace       "back room"
+  station-d  Grab & Go     "near the entrance"
+
+DISHES — replace all seeded dishes with these five real Bella&Bona dishes. The
+allergens are transcribed from the printed label on each bowl, so they are
+caterer-declared, not inferred.
+
+  chicken-pasta-salad
+    "Chicken Pasta Salad"
+    allergens: gluten, milk, mustard, sulphite
+    dietTags: none
+    visible: penne, chicken, mozzarella pearls, kalamata olives, sun-dried
+             tomato, roasted red pepper, herb dressing
+
+  mediterranean-cruise
+    "Mediterranean Cruise"
+    allergens: milk, gluten, sulphite
+    dietTags: vegetarian
+    visible: rocket, feta, sun-dried tomato, roasted red pepper, balsamic
+
+  high-protein-chicken-rice
+    "High Protein Chicken and Rice"
+    allergens: celery
+    dietTags: high_protein
+    visible: grilled chicken, rice, cucumber, cherry tomato, pickled red
+             cabbage, tomato sauce
+
+  thai-peanut-tofu-bowl
+    "High Protein Thai Peanut Bowl with Chickpea & Tofu"
+    allergens: null   <-- NOT LEGIBLE ON THE LABEL. Leave null.
+    dietTags: vegan, high_protein
+    visible: tofu, chickpeas, sweetcorn, carrot, cucumber, pickled red
+             cabbage, peanut sauce, sesame seeds
+
+  vegan-chickpeas-quinoa-salad
+    "Vegan Chickpeas Quinoa Salad"
+    allergens: mustard
+    dietTags: vegan
+    visible: chickpeas, quinoa, avocado, cherry tomato, roasted red pepper,
+             pumpkin seeds, herb dressing
+
+PLACEMENT
+  Main Hall:  Mediterranean Cruise, Chicken Pasta Salad
+  Atrium:     Vegan Chickpeas Quinoa Salad (LOW), Thai Peanut Bowl
+  Terrace:    Chicken Pasta Salad, Mediterranean Cruise
+  Grab & Go:  High Protein Chicken and Rice
+Atrium keeps queue: high. Terrace keeps queue: low. Initial states otherwise
+unchanged, so the demo scenario still runs.
+
+THE HERO DISH CHANGED. Everywhere the app currently says "Vegan Thai Curry",
+it must now say "Vegan Chickpeas Quinoa Salad". That includes:
+  - the hidden manual override
+  - the pre-filled staff text, which becomes:
+    "Vegan Chickpeas Quinoa Salad is almost finished, and approximately 20
+     guests are waiting."
+  - the keyword matching in the free-text interpreter
+  - the announcements:
+    EN "The Atrium is running low. Vegan options are available on the Terrace,
+        with a free coffee if you go now."
+    DE "Im Atrium gibt es nur noch wenige Portionen. Vegane Optionen gibt es
+        auf der Terrasse, mit einem Gratis-Kaffee."
+
+ALLERGEN DISPLAY — two separate lines, never merged:
+  1. Declared allergens, with the source line "Declared by the caterer, 1 Aug".
+     Where allergens is null, render exactly:
+     "Allergens not recorded — ask the catering team."
+     Never infer an allergen from a dish name, a photo, or the visible list.
+  2. "Visible in the bowl", secondary and visibly less prominent. This is
+     descriptive only and is NOT a caterer declaration.
+
+IMAGES — fetch at build time into local assets, never at runtime; the app must
+render every dish image with the network off.
+https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/chicken-pasta-salad.jpg
+https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/mediterranean-cruise.jpg
+https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/high-protein-chicken-rice.jpg
+https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/thai-peanut-tofu-bowl.jpg
+https://raw.githubusercontent.com/kaiser-data/bonaflow/main/assets/dishes/vegan-chickpeas-quinoa-salad.jpg
+
+DISCLAIMERS — these get MORE important now, not less. The app now shows a real
+event name and a real caterer's dishes and allergen data, so it can be mistaken
+for an official Bella&Bona product. Both lines must be visible, not hidden in an
+about screen:
+  "Independent hackathon prototype. Not affiliated with Bella&Bona."
+  "Dish names and allergens transcribed from bowl labels, 1 Aug. Station layout
+   and availability are simulated for this demo. Confirm allergens with catering
+   staff."
+```
+
+**Then re-run the two-device test.** A data swap should not break sync, but confirm it rather
+than assume it.
+
+---
+
 ## PHASE 3 — Operations view, OpenAI extraction, ElevenLabs
 
 ```
