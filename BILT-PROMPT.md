@@ -538,6 +538,33 @@ will do it faster. No code change.
 
 ---
 
+## CORRECTION C — reset to seed ⚠ paste BEFORE letting anyone else use the app
+
+**Without this, participant testing destroys your demo.** Twenty people submitting updates will
+leave every station red and the task list full, and the 16:30 scenario needs the Atrium low and
+the Terrace available. Do not hand the app to anyone until this exists and you have tested it.
+
+```
+Add a RESET TO SEED control. It restores the backend to the exact initial demo
+state in one tap: all stations, dishes, availabilities, queue levels and statuses
+back to their seeded values, and all staff updates, alerts, replenishment tasks
+and announcements cleared. The incentive returns to its seeded state.
+
+Put it in the Operations view, at the bottom, behind a confirm dialog so it cannot
+be hit by accident. Label it "Reset demo data". Show the time of the last reset.
+
+It must work when the app has been used heavily by many people — it is a full
+restore of the seed, not an undo.
+
+Also add a small counter to the Operations Overview: total staff updates
+submitted since the last reset. This is our record of how many people tested it.
+```
+
+**Test the reset immediately.** Submit three updates, reset, confirm you are back to the seeded
+board. Then reset once more right before you rehearse at 16:00.
+
+---
+
 ## PHASE 3 — Operations view, OpenAI extraction, ElevenLabs
 
 ```
