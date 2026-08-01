@@ -1050,6 +1050,52 @@ textarea {
   font-weight: 700;
 }
 
+.announcement-card {
+  padding: 20px;
+  border: 1px solid #dfe3dc;
+  border-radius: 20px;
+  background: #fff;
+}
+
+.announcement-card h2,
+.announcement-card p {
+  margin: 0;
+}
+
+.announcement-card h2 {
+  margin: 5px 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+}
+
+.announcement-card p {
+  color: #5f6d69;
+  line-height: 1.4;
+}
+
+.announcement-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.announcement-actions button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #cfd6d1;
+  border-radius: 12px;
+  background: #fff;
+  color: #19312f;
+}
+
+.announcement-fallback {
+  margin-top: 12px !important;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #eef1ec;
+}
+
 button,
 a,
 input,

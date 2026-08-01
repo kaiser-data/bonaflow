@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BottomNav } from "@/components/bottom-nav";
+import { AnnouncementCard } from "@/components/announcement-card";
 import { Disclaimer } from "@/components/disclaimer";
 import {
   StationCard,
@@ -124,6 +125,8 @@ export default function GuestPage() {
               )}
           </section>
         )}
+
+        {state.alerts.some((alert) => alert.active) && <AnnouncementCard />}
 
         {filter !== "all" && visibleStations.length === 0 ? (
           <section className="no-match">

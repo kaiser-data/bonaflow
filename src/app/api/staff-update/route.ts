@@ -5,6 +5,7 @@ import {
   type QuickAction,
 } from "@/domain/interpretation";
 import { getStateRepository } from "@/server/state-repository";
+import { extractStaffUpdate } from "@/server/nebius";
 
 export const runtime = "nodejs";
 
@@ -42,10 +43,18 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    return NextResponse.json({
-      extraction: interpretKeywords(body.transcript, body.stationId, state),
-      interpretationMode: "offline",
-    });
+    try {
+      return NextResponse.json({
+        extraction: await extractStaffUpdate(body.transcript, body.stationId, state),
+        interpretationMode: "nebius",
+      });
+    } catch (error) {
+      console.warn("BonaFlow Nebius fallback", error);
+      return NextResponse.json({
+        extraction: interpretKeywords(body.transcript, body.stationId, state),
+        interpretationMode: "offline",
+      });
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Update could not be interpreted.";
     return NextResponse.json({ error: message }, { status: 400 });
