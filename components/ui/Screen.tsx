@@ -1,22 +1,26 @@
-import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import type { ReactNode, RefObject } from 'react';
+import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { keyboardBehavior } from '@/lib/platform';
+import { keyboardBehavior, keyboardDismissMode } from '@/lib/platform';
 import { cn } from '@/lib/utils';
 
 export type ScreenEdge = 'top' | 'bottom' | 'left' | 'right';
 
 export type ScreenProps = {
-  children: ReactNode;
-  /**
+  children: ReactNode /**
    * Which safe-area insets to apply. Screens rendered inside the tab navigator
    * usually skip 'bottom' because the tab bar already absorbs that inset, and
    * skip 'top' when a navigation header is visible.
-   */
+   */;
   edges?: readonly ScreenEdge[];
   /** Render content inside a ScrollView. */
   scroll?: boolean;
+  /**
+   * Handle on the internal ScrollView, so a screen can move itself to the next
+   * step instead of asking the guest to scroll for it.
+   */
+  scrollRef?: RefObject<ScrollView | null>;
   /** Required for any screen containing a text input. */
   keyboardAvoiding?: boolean;
   /** Height of a visible navigation header, so keyboard avoidance lines up. */
@@ -39,6 +43,7 @@ export function Screen({
   children,
   edges = ALL_EDGES,
   scroll = false,
+  scrollRef,
   keyboardAvoiding = false,
   keyboardVerticalOffset = 0,
   bottomOffset = 0,
@@ -56,10 +61,11 @@ export function Screen({
 
   const content = scroll ? (
     <ScrollView
+      ref={scrollRef}
       className="flex-1"
       contentContainerStyle={[insetStyle, { flexGrow: 1 }]}
       keyboardShouldPersistTaps="handled"
-      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      keyboardDismissMode={keyboardDismissMode}
       showsVerticalScrollIndicator={false}
     >
       <View className={cn('flex-1', contentClassName)}>{children}</View>

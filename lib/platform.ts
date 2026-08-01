@@ -18,6 +18,10 @@ export const monoTextStyle: TextStyle = { fontFamily: monoFontFamily };
 /** Keyboard avoidance behavior per platform. */
 export const keyboardBehavior = Platform.OS === 'ios' ? ('padding' as const) : ('height' as const);
 
+/** How a scroll gesture dismisses the keyboard, per platform. */
+export const keyboardDismissMode =
+  Platform.OS === 'ios' ? ('interactive' as const) : ('on-drag' as const);
+
 /** Minimum accessible touch target, in points. */
 export const MIN_TOUCH_TARGET = 44;
 

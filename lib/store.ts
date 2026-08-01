@@ -665,6 +665,11 @@ type BonaFlowState = {
   redemptions: readonly Redemption[];
   /** Voice notes filed in the archive, newest first. Downloadable from operations. */
   recordings: readonly VoiceRecording[];
+  /**
+   * The bowl a guest tapped somewhere else in the app, so the Rate tab opens on
+   * it instead of asking again. Cleared as soon as the Rate tab has read it.
+   */
+  ratingTarget: { stationId: string; dishId: string } | null;
   /** Pending guest review. Nothing is stored while this is set. */
   ratingDraft: RatingDraft | null;
   /** How the pending review was read. */
@@ -689,6 +694,9 @@ type BonaFlowState = {
   completeTask: (taskId: string) => void;
   /** Operations lever: turn the seeded incentive on or off. */
   setIncentiveActive: (active: boolean) => void;
+  /** Remember which bowl a guest tapped, so the Rate tab opens on it. */
+  setRatingTarget: (stationId: string, dishId: string) => void;
+  clearRatingTarget: () => void;
   /** Open the review confirmation flow with a read review. */
   startRatingDraft: (draft: RatingDraft, interpretation?: RatingInterpretation | null) => void;
   patchRatingDraft: (patch: Partial<RatingDraft>) => void;
@@ -879,6 +887,7 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
   ratings: [],
   redemptions: [],
   recordings: [],
+  ratingTarget: null,
   ratingDraft: null,
   ratingInterpretation: null,
   lastRating: null,
@@ -943,6 +952,8 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
     set({ event: { ...event, incentive }, revision: get().revision + 1 });
     emitWrite({ kind: 'incentive', incentive });
   },
+  setRatingTarget: (stationId, dishId) => set({ ratingTarget: { stationId, dishId } }),
+  clearRatingTarget: () => set({ ratingTarget: null }),
   startRatingDraft: (ratingDraft, ratingInterpretation = null) =>
     set({ ratingDraft, ratingInterpretation, lastRating: null }),
   patchRatingDraft: (patch) =>

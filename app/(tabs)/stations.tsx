@@ -6,6 +6,7 @@ import { StationCard } from '@/components/station/StationCard';
 import { MonoText } from '@/components/ui/MonoText';
 import { Screen } from '@/components/ui/Screen';
 import { useLivePoll } from '@/hooks/useLivePoll';
+import { useRateDish } from '@/hooks/useRateDish';
 import { MENU_SOURCE_LINE } from '@/lib/menu';
 import { useBonaFlowStore, type Station } from '@/lib/store';
 import { dietPhrase, filterStations } from '@/lib/stations';
@@ -16,6 +17,8 @@ export default function StationsScreen() {
   const event = useBonaFlowStore((state) => state.event);
   // Staff updates arrive on their own: no manual refresh anywhere in the app.
   const poll = useLivePoll();
+  // Tapping a bowl here is the short way into a review: no tab hop, no second pick.
+  const rateDish = useRateDish();
 
   const visibleStations = useMemo(
     () => filterStations(stations, dietFilter),
@@ -37,7 +40,7 @@ export default function StationsScreen() {
         keyExtractor={(station) => station.id}
         renderItem={({ item }) => (
           <View className="px-5">
-            <StationCard station={item} />
+            <StationCard station={item} onRateDish={rateDish} />
           </View>
         )}
         extraData={poll.tick}
@@ -52,6 +55,9 @@ export default function StationsScreen() {
                 {event.venue} · lunch {event.serviceStart}–{event.serviceEnd}
               </MonoText>
               <MonoText className="text-muted text-[11px]">{MENU_SOURCE_LINE}</MonoText>
+              <MonoText className="text-foreground text-[11px]">
+                tap the bowl you ate to rate it
+              </MonoText>
             </View>
             <DietFilterChips />
           </View>

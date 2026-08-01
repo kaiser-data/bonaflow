@@ -8,7 +8,14 @@ import { Screen } from '@/components/ui/Screen';
 import { Touchable } from '@/components/ui/Touchable';
 import { formatClock } from '@/lib/stations';
 import { deviceId } from '@/lib/device';
-import { balanceFor, REWARDS, type Reward } from '@/lib/rewards';
+import {
+  balanceFor,
+  POINTS_BASE,
+  POINTS_REASON_BONUS,
+  POINTS_VOICE_BONUS,
+  REWARDS,
+  type Reward,
+} from '@/lib/rewards';
 import { findStation, useBonaFlowStore } from '@/lib/store';
 import { colors } from '@/lib/theme';
 
@@ -36,7 +43,7 @@ export default function RewardsScreen() {
   const myRatings = ratings.filter((rating) => rating.deviceId === id);
 
   return (
-    <Screen scroll contentClassName="gap-6 px-5 py-4">
+    <Screen scroll edges={['left', 'right', 'bottom']} contentClassName="gap-6 px-5 py-4">
       {lastRating === null ? null : (
         <Card level="md" className="gap-1 rounded-3xl p-5">
           <View className="flex-row items-center gap-2">
@@ -59,6 +66,10 @@ export default function RewardsScreen() {
         </Text>
         <MonoText className="text-muted text-xs">
           {myRatings.length} {myRatings.length === 1 ? 'review' : 'reviews'} from this phone
+        </MonoText>
+        <MonoText className="text-muted text-[11px]">
+          {POINTS_BASE} for a rating · {POINTS_REASON_BONUS} more for saying why ·{' '}
+          {POINTS_VOICE_BONUS} more for speaking it
         </MonoText>
       </View>
 

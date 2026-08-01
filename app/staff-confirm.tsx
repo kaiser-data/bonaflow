@@ -1,4 +1,4 @@
-import { Image, Text, TextInput, View } from 'react-native';
+import { Image, ScrollView, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { InterpretationCard } from '@/components/staff/InterpretationCard';
@@ -8,8 +8,8 @@ import { MonoText } from '@/components/ui/MonoText';
 import { Screen } from '@/components/ui/Screen';
 import { Touchable } from '@/components/ui/Touchable';
 import { describeAttachment } from '@/lib/audio';
+import { keyboardDismissMode } from '@/lib/platform';
 import {
-  findDish,
   findStation,
   useBonaFlowStore,
   type DishAvailability,
@@ -88,7 +88,6 @@ export default function ConfirmReportScreen() {
   }
 
   const station = findStation(stations, draft.stationId) ?? stations[0];
-  const dish = findDish(station, draft.dishId);
 
   const stationChoices: readonly ChoiceOption<string>[] = stations.map((entry) => ({
     value: entry.id,
@@ -113,159 +112,159 @@ export default function ConfirmReportScreen() {
   };
 
   return (
-    <Screen scroll keyboardAvoiding contentClassName="gap-6 px-5 py-5" bottomOffset={8}>
-      {interpretation === null ? null : (
-        <InterpretationCard
-          interpretation={interpretation}
-          photoAttached={draft.photoUri !== null}
-        />
-      )}
-
-      <Card level="md" className="gap-2 rounded-3xl p-5">
-        <MonoText className="text-foreground text-sm">Station: {station.name}</MonoText>
-        <MonoText className="text-foreground text-sm">
-          Dish: {dish?.name ?? 'whole station'}
-        </MonoText>
-        <MonoText className="text-foreground text-sm">
-          Availability:{' '}
-          {draft.availability === null ? 'not reported' : availabilityLabel(draft.availability)}
-        </MonoText>
-        <MonoText className="text-foreground text-sm">
-          Queue: {draft.queue === null ? 'not reported' : queueLabel(draft.queue)}
-        </MonoText>
-        <MonoText className="text-foreground text-sm">
-          Guests waiting:{' '}
-          {draft.guestsWaiting === null ? 'not reported' : `${draft.guestsWaiting} (reported)`}
-        </MonoText>
-        <MonoText className="text-foreground text-sm">
-          Action: {actionLabel(draft.action)} — priority {priorityLabel(draft.priority)}
-        </MonoText>
-
-        {draft.audio === null ? null : (
-          <View className="gap-0.5">
-            <MonoText className="text-muted text-xs">{describeAttachment(draft.audio)}</MonoText>
-            <MonoText className="text-muted text-[10px]">
-              kept in the archive with this update
-            </MonoText>
-          </View>
-        )}
-
-        {draft.photoUri === null ? null : (
-          <View className="flex-row items-center gap-3 pt-1">
-            <Image
-              source={{ uri: draft.photoUri }}
-              style={{ width: PHOTO_SIZE, height: PHOTO_SIZE, borderRadius: 12 }}
-              resizeMode="cover"
-              accessibilityLabel="Attached tray photo"
+    // The header supplies the top inset; the action bar owns the bottom one.
+    <Screen keyboardAvoiding edges={['left', 'right']} contentClassName="flex-1">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 12 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={keyboardDismissMode}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="gap-5 px-5 py-4">
+          {interpretation === null ? null : (
+            <InterpretationCard
+              interpretation={interpretation}
+              photoAttached={draft.photoUri !== null}
             />
-            <MonoText className="text-muted text-xs">tray photo attached</MonoText>
+          )}
+
+          {draft.audio === null && draft.photoUri === null ? null : (
+            <Card level="sm" className="gap-2 rounded-3xl p-4">
+              {draft.audio === null ? null : (
+                <View className="gap-0.5">
+                  <MonoText className="text-muted text-xs">
+                    {describeAttachment(draft.audio)}
+                  </MonoText>
+                  <MonoText className="text-muted text-[10px]">
+                    kept in the archive with this update
+                  </MonoText>
+                </View>
+              )}
+
+              {draft.photoUri === null ? null : (
+                <View className="flex-row items-center gap-3">
+                  <Image
+                    source={{ uri: draft.photoUri }}
+                    style={{ width: PHOTO_SIZE, height: PHOTO_SIZE, borderRadius: 12 }}
+                    resizeMode="cover"
+                    accessibilityLabel="Attached tray photo"
+                  />
+                  <MonoText className="text-muted text-xs">tray photo attached</MonoText>
+                </View>
+              )}
+            </Card>
+          )}
+
+          {/* The fields below are the report. They are not repeated above it: one
+              statement of each value, editable, is faster to check than two. */}
+          <Text className="text-muted text-sm">
+            Nothing changes for guests or operations until you confirm. Every field can be corrected
+            first.
+          </Text>
+
+          <View className="gap-5">
+            <ChoiceRow
+              label="Station"
+              options={stationChoices}
+              value={station.id}
+              onSelect={(stationId) => patchDraft({ stationId, dishId: null })}
+            />
+
+            <ChoiceRow
+              label="Dish"
+              options={dishChoices}
+              value={draft.dishId ?? WHOLE_STATION}
+              onSelect={(value) =>
+                patchDraft({
+                  dishId: value === WHOLE_STATION ? null : value,
+                  // Availability can only be applied to a named dish.
+                  availability: value === WHOLE_STATION ? null : draft.availability,
+                })
+              }
+            />
+
+            <ChoiceRow
+              label="Availability"
+              options={AVAILABILITY_CHOICES}
+              value={draft.availability ?? UNREPORTED}
+              onSelect={(value) =>
+                patchDraft({ availability: value === UNREPORTED ? null : value })
+              }
+            />
+
+            <ChoiceRow
+              label="Queue"
+              options={QUEUE_CHOICES}
+              value={draft.queue ?? UNREPORTED}
+              onSelect={(value) => patchDraft({ queue: value === UNREPORTED ? null : value })}
+            />
+
+            <View className="gap-2">
+              <Text className="text-muted text-xs font-semibold uppercase">Guests waiting</Text>
+              <TextInput
+                value={guestsText}
+                onChangeText={(next) => {
+                  const digits = next.replace(/[^0-9]/g, '');
+                  patchDraft({ guestsWaiting: digits === '' ? null : Number.parseInt(digits, 10) });
+                }}
+                keyboardType="number-pad"
+                placeholder="not reported"
+                placeholderTextColor={colors.muted}
+                className="border-border bg-surface text-foreground rounded-2xl border px-4 text-base"
+                style={{ minHeight: 52 }}
+                accessibilityLabel="Guests waiting"
+              />
+            </View>
+
+            <ChoiceRow
+              label="Action"
+              options={ACTION_CHOICES}
+              value={draft.action}
+              onSelect={(action) => patchDraft({ action })}
+            />
+
+            <ChoiceRow
+              label="Priority"
+              options={PRIORITY_CHOICES}
+              value={draft.priority}
+              onSelect={(priority) => patchDraft({ priority })}
+            />
+
+            <View className="gap-2">
+              <Text className="text-muted text-xs font-semibold uppercase">Note</Text>
+              <TextInput
+                value={draft.note}
+                onChangeText={(note) => patchDraft({ note })}
+                multiline
+                placeholder="What should the team know?"
+                placeholderTextColor={colors.muted}
+                className="border-border bg-surface text-foreground rounded-2xl border px-4 py-3 text-base"
+                style={{ minHeight: 72, textAlignVertical: 'top' }}
+                accessibilityLabel="Note"
+              />
+            </View>
           </View>
-        )}
-      </Card>
-
-      <Text className="text-muted text-sm">
-        Nothing changes for guests or operations until you confirm. Every field can be corrected
-        first.
-      </Text>
-
-      <View className="gap-5">
-        <ChoiceRow
-          label="Station"
-          options={stationChoices}
-          value={station.id}
-          onSelect={(stationId) => patchDraft({ stationId, dishId: null })}
-        />
-
-        <ChoiceRow
-          label="Dish"
-          options={dishChoices}
-          value={draft.dishId ?? WHOLE_STATION}
-          onSelect={(value) =>
-            patchDraft({
-              dishId: value === WHOLE_STATION ? null : value,
-              // Availability can only be applied to a named dish.
-              availability: value === WHOLE_STATION ? null : draft.availability,
-            })
-          }
-        />
-
-        <ChoiceRow
-          label="Availability"
-          options={AVAILABILITY_CHOICES}
-          value={draft.availability ?? UNREPORTED}
-          onSelect={(value) => patchDraft({ availability: value === UNREPORTED ? null : value })}
-        />
-
-        <ChoiceRow
-          label="Queue"
-          options={QUEUE_CHOICES}
-          value={draft.queue ?? UNREPORTED}
-          onSelect={(value) => patchDraft({ queue: value === UNREPORTED ? null : value })}
-        />
-
-        <View className="gap-2">
-          <Text className="text-muted text-xs font-semibold uppercase">Guests waiting</Text>
-          <TextInput
-            value={guestsText}
-            onChangeText={(next) => {
-              const digits = next.replace(/[^0-9]/g, '');
-              patchDraft({ guestsWaiting: digits === '' ? null : Number.parseInt(digits, 10) });
-            }}
-            keyboardType="number-pad"
-            placeholder="not reported"
-            placeholderTextColor={colors.muted}
-            className="border-border bg-surface text-foreground rounded-2xl border px-4 text-base"
-            style={{ minHeight: 52 }}
-            accessibilityLabel="Guests waiting"
-          />
         </View>
+      </ScrollView>
 
-        <ChoiceRow
-          label="Action"
-          options={ACTION_CHOICES}
-          value={draft.action}
-          onSelect={(action) => patchDraft({ action })}
-        />
-
-        <ChoiceRow
-          label="Priority"
-          options={PRIORITY_CHOICES}
-          value={draft.priority}
-          onSelect={(priority) => patchDraft({ priority })}
-        />
-
-        <View className="gap-2">
-          <Text className="text-muted text-xs font-semibold uppercase">Note</Text>
-          <TextInput
-            value={draft.note}
-            onChangeText={(note) => patchDraft({ note })}
-            multiline
-            placeholder="What should the team know?"
-            placeholderTextColor={colors.muted}
-            className="border-border bg-surface text-foreground rounded-2xl border p-4 text-base"
-            style={{ minHeight: 96, textAlignVertical: 'top' }}
-            accessibilityLabel="Note"
-          />
-        </View>
-      </View>
-
-      <View className="gap-3 pt-1">
-        <Touchable
-          accessibilityLabel="Confirm this update"
-          onPress={confirm}
-          style={{ minHeight: 64 }}
-          className="bg-accent items-center justify-center rounded-3xl px-5"
-        >
-          <Text className="text-accent-foreground text-lg font-semibold">Confirm</Text>
-        </Touchable>
-
+      <View className="border-border bg-background pb-safe-offset-3 flex-row gap-3 border-t px-5 pt-3">
         <Touchable
           accessibilityLabel="Cancel this update"
           onPress={cancel}
-          style={{ minHeight: 60 }}
+          style={{ minHeight: 56, flexGrow: 0 }}
           className="bg-surface border-border items-center justify-center rounded-3xl border px-5"
         >
-          <Text className="text-foreground text-lg font-semibold">Cancel</Text>
+          <Text className="text-foreground text-base font-semibold">Cancel</Text>
+        </Touchable>
+
+        <Touchable
+          accessibilityLabel="Confirm this update"
+          onPress={confirm}
+          style={{ minHeight: 56, flex: 1 }}
+          className="bg-accent items-center justify-center rounded-3xl px-5"
+        >
+          <Text className="text-accent-foreground text-lg font-semibold">Confirm</Text>
         </Touchable>
       </View>
     </Screen>

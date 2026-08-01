@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { MonoText } from '@/components/ui/MonoText';
 import { Screen } from '@/components/ui/Screen';
 import { useLivePoll } from '@/hooks/useLivePoll';
+import { useRateDish } from '@/hooks/useRateDish';
 import { findDish, findStation, useBonaFlowStore } from '@/lib/store';
 import {
   dietPhrase,
@@ -25,6 +26,7 @@ export default function ForYouScreen() {
   const event = useBonaFlowStore((state) => state.event);
   // No refresh button anywhere: the store pushes changes and this polls it.
   const poll = useLivePoll();
+  const rateDish = useRateDish();
 
   const recommendation = useMemo(() => {
     const ref = recommendations[dietFilter];
@@ -81,7 +83,10 @@ export default function ForYouScreen() {
               <MonoText className="text-foreground text-sm">{recommendation.reason}</MonoText>
 
               <View className="border-separator gap-4 border-t pt-4">
-                <DishRow dish={recommendation.dish} />
+                <DishRow
+                  dish={recommendation.dish}
+                  onRate={() => rateDish(recommendation.station.id, recommendation.dish.id)}
+                />
               </View>
 
               <MonoText className="text-muted text-xs">

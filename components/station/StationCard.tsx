@@ -7,10 +7,18 @@ import { MonoText } from '@/components/ui/MonoText';
 import type { Station } from '@/lib/store';
 import { formatClock, queueLabel, statusLabel } from '@/lib/stations';
 
-export type StationCardProps = { station: Station };
+export type StationCardProps = {
+  station: Station;
+  /**
+   * Guest screens pass this so tapping a bowl starts its review. Staff screens
+   * reuse the same card without it, because staff report on stations rather than
+   * rate the food.
+   */
+  onRateDish?: (stationId: string, dishId: string) => void;
+};
 
 /** Rounded station card: name, location, status dot, queue, dishes, last update. */
-export function StationCard({ station }: StationCardProps) {
+export function StationCard({ station, onRateDish }: StationCardProps) {
   return (
     <Card level="md" className="gap-5 rounded-3xl p-5">
       <View className="flex-row items-start justify-between gap-4">
@@ -29,7 +37,11 @@ export function StationCard({ station }: StationCardProps) {
 
       <View className="border-separator gap-4 border-t pt-4">
         {station.dishes.map((dish) => (
-          <DishRow key={dish.id} dish={dish} />
+          <DishRow
+            key={dish.id}
+            dish={dish}
+            onRate={onRateDish === undefined ? undefined : () => onRateDish(station.id, dish.id)}
+          />
         ))}
       </View>
 
