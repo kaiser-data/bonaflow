@@ -480,6 +480,53 @@ than assume it.
 
 ---
 
+## CORRECTION B — Nebius instead of OpenAI (no OpenAI credits)
+
+**Paste this instead of the OpenAI parts of Phase 3.** Nebius Token Factory is OpenAI-compatible,
+so this is a base URL and a model name, not an architecture change.
+
+```
+Do not use OpenAI. There are no OpenAI credits. Use Nebius Token Factory, which
+is OpenAI-compatible, so keep the OpenAI SDK and change only the client config.
+
+  base_url: "https://api.tokenfactory.nebius.com/v1/"
+  api key:  process.env.NEBIUS_API_KEY   (server-side only, never in the app)
+  model:    "Qwen/Qwen3-235B-A22B"
+
+Server-side only. The key must never reach the client.
+
+TEXT ONLY. Do not send the tray photo to the model. Nebius vision support is not
+confirmed and the demo does not need it: the staff member's sentence carries the
+operational payload. Keep the photo as an attachment displayed on the alert and
+the activity feed — it is evidence for a human, not model input. Set
+"observed" to null when there is no photo analysis, and never let the absence of
+a photo change the extraction.
+
+Use response_format with type "json_schema" and the strict schema already defined
+for the staff update. Keep every existing rule unchanged:
+  - stationId and dishId MUST come from the supplied closed lists, never invented
+  - reportedFacts and aiInferences stay separate, every inference has confidence
+  - reportedGuestCount is null unless a human actually said a number
+  - validate every field server-side; on invalid output change nothing and show
+    the correction UI
+
+KEEP THE DETERMINISTIC KEYWORD INTERPRETER as the automatic fallback. If the
+Nebius call fails, times out after 8 seconds, or returns something that fails
+validation, fall back to the existing keyword extraction in lib/reports.ts and
+label the confirmation screen "offline interpretation — please check the fields".
+The staff member is confirming every field anyway, so this degrades cleanly and
+the demo never blocks on a network call.
+
+ElevenLabs stays exactly as it is for transcription and for the spoken
+announcements. Nothing else changes.
+```
+
+**If Qwen3-235B is slow**, swap the model string for a smaller instruct model on the same
+endpoint — extraction from one sentence is an easy task and a smaller model will do it faster.
+Nothing else in the code changes.
+
+---
+
 ## PHASE 3 — Operations view, OpenAI extraction, ElevenLabs
 
 ```
