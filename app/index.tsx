@@ -98,7 +98,7 @@ export default function ModeSelectScreen() {
               style={{ color: brand.green, fontSize: 11, letterSpacing: 1.4 }}
               className="font-semibold"
             >
-              BELLA&BONA LUNCH
+              BONAFLOW
             </Text>
           </View>
         </View>
