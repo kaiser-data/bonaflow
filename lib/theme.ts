@@ -29,6 +29,21 @@ export const colors = {
 } as const;
 
 /**
+ * Bella&Bona house colours, read from the supplied logo tile.
+ *
+ * These belong to the caterer's brand, not to the operational palette above.
+ * They are used for the brand mark and the product name on the start screen only:
+ * the pink must never carry a status meaning, and this green must not be confused
+ * with `statusColors.green` ("available"), which is a different, teal green.
+ */
+export const brand = {
+  /** Logo background */
+  pink: '#FBA8CE',
+  /** Wordmark green */
+  green: '#0C4A33',
+} as const;
+
+/**
  * Reserved status colours. These four values carry meaning and must never be
  * reused for decoration, text, chips, icons or backgrounds anywhere else.
  *   green  available
