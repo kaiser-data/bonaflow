@@ -1,0 +1,571 @@
+<meta charset="utf-8">
+<title>BonaFlow — Field Guide</title>
+<style>
+  :root{
+    --paper:#F2F4F1; --ink:#14171A; --soft:#5A6169;
+    --observed:#0F766E; --inferred:#B8860B; --alert:#B4432B;
+    --line:#D3D9D1; --rule:#14171A;
+  }
+  @page{ size:A4; margin:16mm 14mm 16mm 14mm; }
+  *{ box-sizing:border-box; }
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{
+    font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;
+    color:var(--ink); background:#fff;
+    font-size:9.1pt; line-height:1.46; margin:0;
+    orphans:3; widows:3;
+  }
+  h1,h2,h3,.disp{ font-family:"Avenir Next Condensed","Avenir Next",system-ui,sans-serif; }
+  code,pre,.mono,td.num{ font-family:"SF Mono",Menlo,Consolas,monospace; }
+
+  /* ---------- cover ---------- */
+  .cover{ height:262mm; display:flex; flex-direction:column; justify-content:space-between;
+          page-break-after:always; }
+  .cover-top{ border-top:3pt solid var(--ink); padding-top:6mm; }
+  .kicker{ font-size:8pt; letter-spacing:.22em; text-transform:uppercase;
+           color:var(--soft); margin-bottom:22mm; }
+  .cover h1{ font-size:58pt; line-height:.92; letter-spacing:-.02em; margin:0 0 5mm;
+             font-weight:600; }
+  .cover .tag{ font-size:14pt; color:var(--soft); max-width:120mm; line-height:1.35; margin:0; }
+  .cover-meta{ border-top:1pt solid var(--line); padding-top:5mm;
+               display:grid; grid-template-columns:repeat(4,1fr); gap:5mm; font-size:8.4pt; }
+  .cover-meta dt{ font-size:7.2pt; letter-spacing:.14em; text-transform:uppercase;
+                  color:var(--soft); margin-bottom:1.5mm; }
+  .cover-meta dd{ margin:0; font-weight:600; }
+
+  /* ---------- structure ---------- */
+  section{ page-break-before:always; }
+  section.flow{ page-break-before:auto; }
+  h2{ font-size:20pt; margin:0 0 1mm; letter-spacing:-.01em; font-weight:600;
+      border-bottom:2pt solid var(--ink); padding-bottom:2mm; }
+  h2 .n{ color:var(--soft); font-size:11pt; margin-right:3mm; vertical-align:.15em; }
+  h2 + .lede{ color:var(--soft); font-size:9.4pt; margin:2.5mm 0 5mm; max-width:150mm; }
+  h3{ font-size:11pt; margin:5mm 0 1.8mm; font-weight:600;
+      break-after:avoid; page-break-after:avoid; }
+  p{ margin:0 0 2.2mm; }
+  ul,ol{ margin:0 0 3mm; padding-left:5mm; }
+  li{ margin-bottom:1.4mm; }
+  strong{ font-weight:600; }
+  em{ font-style:italic; color:var(--soft); }
+
+  /* ---------- tables ---------- */
+  table{ width:100%; border-collapse:collapse; margin:2mm 0 4mm;
+         page-break-inside:avoid; font-size:8.8pt; }
+  th{ text-align:left; font-size:7.2pt; letter-spacing:.13em; text-transform:uppercase;
+      color:var(--soft); border-bottom:1pt solid var(--ink); padding:0 2mm 1.5mm 0;
+      font-weight:600; }
+  td{ border-bottom:.5pt solid var(--line); padding:1.5mm 2mm 1.5mm 0; vertical-align:top; }
+  td.num,td.t{ font-family:"SF Mono",Menlo,monospace; font-size:8pt;
+               white-space:nowrap; color:var(--soft); }
+  tr.hi td{ background:#FBF6E4; }
+
+  /* ---------- callouts ---------- */
+  .box{ border:1pt solid var(--line); border-left:3pt solid var(--ink);
+        padding:3.5mm 4mm; margin:3mm 0; page-break-inside:avoid; background:#FAFBFA; }
+  .box .bt{ font-size:7.2pt; letter-spacing:.15em; text-transform:uppercase;
+            color:var(--soft); margin-bottom:1.5mm; font-weight:600; }
+  .box.warn{ border-left-color:var(--alert); background:#FDF6F4; }
+  .box.warn .bt{ color:var(--alert); }
+  .box.key{ border-left-color:var(--observed); background:#F1F7F6; }
+  .box.key .bt{ color:var(--observed); }
+
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:4mm; }
+
+  /* ---------- evidence registers ---------- */
+  .reg{ border:1pt solid var(--line); padding:3mm 3.5mm; margin-bottom:2mm; }
+  .reg .lbl{ font-size:7pt; letter-spacing:.15em; text-transform:uppercase;
+             font-weight:600; margin-bottom:1mm; }
+  .reg.o{ border-left:3pt solid var(--observed); } .reg.o .lbl{ color:var(--observed); }
+  .reg.s{ border-left:3pt solid var(--ink); }
+  .reg.i{ border-left:3pt solid var(--inferred); } .reg.i .lbl{ color:var(--inferred); }
+  .reg .v{ font-family:"SF Mono",Menlo,monospace; font-size:8.6pt; }
+
+  /* ---------- swatches ---------- */
+  .sw{ display:grid; grid-template-columns:repeat(7,1fr); gap:2mm; margin:2mm 0 4mm; }
+  .sw div{ font-size:6.6pt; font-family:"SF Mono",Menlo,monospace; }
+  .sw i{ display:block; height:13mm; border:.5pt solid var(--line); margin-bottom:1mm; }
+
+  /* ---------- prompt ---------- */
+  .prompt{ font-family:"SF Mono",Menlo,Consolas,monospace; font-size:7.4pt;
+           line-height:1.42; white-space:pre-wrap; word-wrap:break-word;
+           border-left:2pt solid var(--line); padding-left:4mm; margin:0; }
+  .card{ font-family:"SF Mono",Menlo,monospace; font-size:7.6pt; line-height:1.35;
+         white-space:pre; border:1pt solid var(--ink); padding:3mm; display:inline-block;
+         margin:2mm 0 4mm; }
+  .foot{ font-size:7.4pt; color:var(--soft); border-top:.5pt solid var(--line);
+         padding-top:2mm; margin-top:5mm; }
+</style>
+<div class="cover">
+  <div class="cover-top">
+    <div class="kicker">8x × Bella&amp;Bona Mobile Hackathon · Delta Campus Berlin · 1 August 2026</div>
+    <h1>BonaFlow</h1>
+    <p class="tag">Find food faster. Keep every station flowing.</p>
+  </div>
+  <dl class="cover-meta">
+    <div><dt>Freeze</dt><dd>16:00</dd></div>
+    <div><dt>Demos</dt><dd>16:30</dd></div>
+    <div><dt>Pitches</dt><dd>17:15</dd></div>
+    <div><dt>Team</dt><dd>2 people</dd></div>
+  </dl>
+</div>
+
+<!-- ==================== 1 ==================== -->
+<section>
+<h2><span class="n">01</span>Orientation</h2>
+<p class="lede">Read this page before you write a line of code. It is the whole strategy in one
+screen.</p>
+
+<h3>The core transformation — this must be visible on stage</h3>
+<div class="box key">
+  <div class="bt">One sentence becomes five operational changes</div>
+  <p><em>&ldquo;Vegan Thai Curry is almost finished, and around 20 guests are waiting.&rdquo;</em></p>
+  <p style="margin-bottom:0">→ Station B availability drops · a <strong>high-priority
+  replenishment task</strong> is created · the ops dashboard updates ·
+  <strong>guests are redirected to Station C</strong> · a multilingual announcement is generated.</p>
+</div>
+
+<h3>The insight to lead with</h3>
+<p><strong>The gap is not sensing. The gap is distribution.</strong> The person behind Station B
+already knows the vegan curry is nearly gone. That fact is worth a great deal to 250 guests and
+to the kitchen — and today it travels no further than the two metres in front of them.</p>
+<p><strong>Three seconds of a staff member&rsquo;s voice becomes a live redirect for every guest
+in the room, in their own language.</strong></p>
+
+<h3>The problem, stated so a caterer nods</h3>
+<table>
+  <tr><td style="width:44mm"><strong>Guests</strong></td>
+      <td>Long queues at one station while another stands quiet. Can&rsquo;t locate vegan or
+      vegetarian choices. International guests miss announcements entirely.</td></tr>
+  <tr><td><strong>Catering teams</strong></td>
+      <td>Food runs out without operations knowing. Staff coordinate through fragmented
+      conversations. Replenishment is late. Surplus at one station, shortage at another.</td></tr>
+</table>
+<p><strong>Static signs and printed menus cannot respond to live conditions.</strong> BonaFlow
+creates one shared real-time view for guests and catering teams.</p>
+
+<h3>Three modes, one app, no authentication</h3>
+<p>A plain demo-mode selector: <strong>Guest · Staff · Operations.</strong> No login screen, no
+password, no role picker.</p>
+<div class="box key">
+  <div class="bt">Why a mode selector and not three apps</div>
+  <p style="margin-bottom:0">It is the reliability path — if the second device dies on stage you
+  switch modes on one phone and the demo still runs. <strong>But demo on two devices when you
+  can:</strong> the guest view changing <em>untouched</em> while you hold the staff phone is the
+  single strongest moment in the pitch.</p>
+</div>
+
+<div class="box warn">
+  <div class="bt">Four ways this dies on stage</div>
+  <ul style="margin-bottom:0">
+    <li><strong>The live update doesn&rsquo;t fire.</strong> Poll at 3 seconds, not realtime
+        magic — and build the manual override at 15:00 (§05).</li>
+    <li><strong>Waiting on the model in front of the room.</strong> Quick actions change state
+        with no AI in the path. Pre-generate the announcements.</li>
+    <li><strong>Two devices, two people, one narration.</strong> Rehearse the handoff twice.</li>
+    <li><strong>Claiming to detect queues.</strong> You don&rsquo;t, and you don&rsquo;t need to.
+        Say so — it is the stronger claim.</li>
+  </ul>
+</div>
+</section>
+
+<!-- ==================== 2 ==================== -->
+<section>
+<h2><span class="n">02</span>The three views</h2>
+<p class="lede">Guest finds food. Staff reports reality. Operations sees everything.</p>
+
+<h3>Guest — tabs: Stations · For You · Updates</h3>
+<p>View all stations, queue status and availability · filter by dietary preference · get a
+recommended station · read and hear live announcements · a simple location label
+(<em>&ldquo;by the stairs&rdquo;</em>, not a map route) · mark that you are joining a queue.</p>
+<p><strong>Dietary filters — support only:</strong> All · Vegan · Vegetarian · Gluten-free option
+· Halal option.</p>
+<div class="box warn">
+  <div class="bt">⚠ The line you may never cross</div>
+  <ul style="margin-bottom:0">
+    <li><strong>Never claim a dish is allergy-safe.</strong> Never render &ldquo;safe&rdquo; or
+        &ldquo;you can eat this.&rdquo;</li>
+    <li><strong>Filter on declared <span class="mono">dietaryTags</span> only.</strong> The model
+        never decides what a dish contains from its name, its photo, or its own knowledge. It
+        filters a list.</li>
+    <li><strong>No match → say so flatly:</strong> <em>&ldquo;No station currently has a vegan
+        option available.&rdquo;</em> Never soften, never offer a &ldquo;probably fine&rdquo;
+        alternative.</li>
+    <li>Always display: <em>&ldquo;Dietary labels are demonstration data. Guests must confirm
+        allergens and ingredients with catering staff.&rdquo;</em></li>
+  </ul>
+</div>
+
+<h3>Staff — tabs: Stations · Report · Tasks</h3>
+<p>Pick a station, then update by <strong>voice</strong>, <strong>text</strong>, <strong>optional
+tray photo</strong>, or <strong>quick action</strong>.</p>
+<table>
+  <tr><td style="width:44mm"><strong>Quick actions</strong><br><em>one tap, no AI call</em></td>
+      <td>Stock running low · Item sold out · Replenishment arrived · Queue increasing ·
+      Queue cleared · Station temporarily closed</td></tr>
+</table>
+<p><strong>Build quick actions early.</strong> They exercise the entire downstream state machine
+with no OpenAI in the path — they are your latency insurance <em>and</em> your fallback
+<em>and</em> your 14:15 gate.</p>
+<div class="box key">
+  <div class="bt">Confirm before apply — mandatory</div>
+  <p>The staff member reviews the extracted update in plain language and confirms before shared
+  data changes. Edit affordance on every field, plus Cancel.</p>
+  <p style="margin-bottom:0"><strong>This is not friction, it is the product being honest</strong>
+  — and it helps the demo, because the judges watch the extraction land before it takes effect.</p>
+</div>
+<p><strong>When the photo and the human disagree, the human wins — and you show it.</strong> A
+tray can look full because it was just re-stacked with something else; the person standing there
+knows. The UI says <em>&ldquo;photo suggested available; staff reported low — using staff.&rdquo;</em>
+That one line is worth more than any accuracy claim you could make.</p>
+
+<h3>Operations — tabs: Overview · Alerts · Activity</h3>
+<p>All stations · status · queue level · available dishes · low-stock items · active alerts ·
+replenishment tasks · most crowded station · recommended redirection · recent staff updates ·
+<strong>timestamp of the last update</strong>.</p>
+<table>
+  <tr><td style="width:22mm">🟢 <strong>Green</strong></td><td>Available</td></tr>
+  <tr><td>🟠 <strong>Orange</strong></td><td>Running low or busy</td></tr>
+  <tr><td>🔴 <strong>Red</strong></td><td>Sold out, closed or urgent</td></tr>
+  <tr class="hi"><td>⚪ <strong>Grey</strong></td><td><strong>No recent update</strong> — build
+      this one. A station nobody has reported on is not &ldquo;fine&rdquo;, it is unknown, and
+      showing that is more credible than a board that is green everywhere by default.</td></tr>
+</table>
+</section>
+
+<!-- ==================== 3 ==================== -->
+<section>
+<h2><span class="n">03</span>Architecture &amp; the AI contract</h2>
+<p class="lede">Model reads. Code decides. Closed sets everywhere.</p>
+
+<h3>Surface — two viable paths, gated by the clock not the hardware</h3>
+<p>You have <strong>two iPhones and one Android</strong>, so you can build and demo cross-platform
+properly, and Bilt&rsquo;s iOS-only streamed simulator is an asset rather than a liability.
+<strong>Test on both platforms from the first screen</strong> — cross-platform bugs cost minutes
+now and an hour at 15:30.</p>
+<table>
+  <tr><td style="width:34mm"><strong>Bilt / React Native</strong></td>
+      <td>The partner prize, real native camera and mic. Phased prompts in
+      <span class="mono">BILT-PROMPT.md</span>. Generate a real RN app, not a web wrapper.</td></tr>
+  <tr><td><strong>Next.js PWA</strong></td>
+      <td>No build step, no install friction for the room scanning your QR. Also cross-platform —
+      Android Chrome and iOS Safari both give camera and mic.</td></tr>
+</table>
+<div class="box warn">
+  <div class="bt">The Bilt gate, and the one iOS trap that ends demos</div>
+  <p><strong>If Phase 1 is not rendering on a real phone by 12:45, drop Bilt</strong>, say nothing
+  about it on stage, and go all-in on the PWA.</p>
+  <p style="margin-bottom:0"><strong>⚠ iPhone ring/silent switch.</strong> With it on silent, audio
+  playback is <strong>completely silent with no error</strong> unless the app sets
+  <span class="mono">playsInSilentModeIOS</span>. Set it in code <em>and</em> check the physical
+  switch before you present. On the web path, iOS Safari records <strong>mp4/aac, not
+  webm</strong> — never hardcode the mime type.</p>
+</div>
+
+<h3>Routes and state</h3>
+<div class="prompt">/                 mode selector        /ops    operations dashboard
+/e/[eventId]      guest navigator      /api/*  server-side only
+/staff            staff update
+
+GET  /api/event/:id        -&gt; { event, stations[], dishes[], alerts[], tasks[] }
+POST /api/staff-update     -&gt; { stationId, transcript?, imageBase64?, quickAction? }
+POST /api/apply            -&gt; { extraction } -&gt; { ok, changed[] }
+GET  /api/guest?diet=vegan -&gt; filtered + ranked</div>
+<p><strong>Entities:</strong> <span class="mono">Event · Station · Dish · StaffUpdate · Alert ·
+ReplenishmentTask</span>.</p>
+<p><strong>Supabase</strong>, or <strong>seeded local state</strong> the moment it costs more than
+25 minutes. Realtime if free; <strong>otherwise poll every 3 seconds and stop thinking about
+it</strong> — polling reads as real-time to an audience and never fails mysteriously.
+<strong>Never in-memory</strong>: serverless drops it between requests, the phone writes, the
+laptop reads nothing, and you lose twenty minutes finding out why.</p>
+
+<div class="box key">
+  <div class="bt">The sequencing rule that unblocks everything</div>
+  <p style="margin-bottom:0">Agree the data model <strong>together, on paper, ten minutes</strong>,
+  before either of you types. Then <strong>ship a stub
+  <span class="mono">POST /api/staff-update</span> returning hardcoded valid JSON within twenty
+  minutes.</strong> The UI wires against the stub immediately and never waits.</p>
+</div>
+
+<h3>The AI contract</h3>
+<p>One server-side call per staff update. Structured Outputs,
+<span class="mono">strict:true</span>. Keys stay server-side. Inputs: transcript · optional tray
+photo · <strong>the closed list of this event&rsquo;s station and dish ids</strong>.</p>
+<div class="prompt">{
+  "stationId": "station-b",          "stationName": "Green Kitchen",
+  "dishId": "vegan-thai-curry",      "dishName": "Vegan Thai Curry",
+  "availability": "available | low | sold_out | uncertain",
+  "queueLevel": "low | medium | high | unknown",
+  "reportedGuestCount": 20,
+  "issueType": "low_stock | sold_out | queue | closure | resolved | other",
+  "priority": "low | medium | high | urgent",
+  "reportedFacts": ["string"],
+  "aiInferences": ["string"],
+  "recommendedAction": "string",
+  "recommendedAlternativeStationId": "station-c",
+  "guestAnnouncement": "string",
+  "confidence": 0.0
+}</div>
+<ul>
+  <li><strong>Closed sets.</strong> <span class="mono">stationId</span> and
+      <span class="mono">dishId</span> must be ids from the supplied lists — never invented. This
+      single constraint removes most of the hallucination class you would otherwise spend the
+      afternoon debugging.</li>
+  <li><strong>Reported facts and AI inferences never merge.</strong> Two visually distinct rows.
+      Every inference carries its confidence.</li>
+  <li><strong>Never present uncertain visual analysis as fact.</strong> Photo-only and unsure → it
+      is an inference, not a fact.</li>
+  <li><strong>Never invent a count.</strong> <span class="mono">reportedGuestCount</span> is only
+      ever a number a human said; otherwise null. No portions, no grams, no wait-time prediction.</li>
+  <li>Validate server-side. On invalid output: keep the transcript, <strong>apply nothing</strong>,
+      show the correction UI.</li>
+</ul>
+
+<div class="box key">
+  <div class="bt">The model proposes. Code decides. Say this on stage.</div>
+  <p>The model returns <span class="mono">recommendedAlternativeStationId</span>.
+  <strong>Validate it before you ever show it</strong> — does that station actually have a
+  matching dish marked available? If the suggestion fails the check, the deterministic rule wins
+  and only code can return &ldquo;nowhere has this.&rdquo;</p>
+  <p style="margin-bottom:0"><em>&ldquo;The model reads. The rules decide. That&rsquo;s why
+  it&rsquo;s auditable.&rdquo;</em> A caterer who has to explain a decision to a client hears that
+  clearly.</p>
+</div>
+
+<div class="prompt">resolveRedirect(dish, fromStation, modelSuggestion):
+  candidates = stations with a matching-dietaryTags dish, availability "available"
+  drop fromStation
+  rank by queueLevel (low &lt; medium &lt; high &lt; unknown), then proximity
+  if modelSuggestion in candidates -&gt; use it
+  else if candidates                -&gt; use candidates[0], log the override
+  else                              -&gt; null, "No station currently has this."</div>
+</section>
+
+<!-- ==================== 4 ==================== -->
+<section>
+<h2><span class="n">04</span>Demo event &amp; build order</h2>
+<p class="lede">Future of Work Summit Berlin · Delta Campus · 250 guests · lunch 12:30–14:00.
+All of it labelled as demonstration data.</p>
+
+<table>
+  <tr><th style="width:44mm">Station</th><th>Dishes &amp; dietary</th><th style="width:38mm">Initial state</th></tr>
+  <tr><td><strong>A · Mediterranean Kitchen</strong><br><em>main hall, left</em></td>
+      <td>Mediterranean Chicken Bowl <span class="mono">halal</span> · Roasted Vegetable Couscous
+      <span class="mono">vegetarian</span></td><td>queue medium · good</td></tr>
+  <tr class="hi"><td><strong>B · Green Kitchen</strong><br><em>by the stairs</em></td>
+      <td><strong>Vegan Thai Curry</strong> <span class="mono">vegan, gluten_free</span> · Tofu
+      Rice Bowl <span class="mono">vegan</span></td>
+      <td><strong>queue high · curry LOW</strong></td></tr>
+  <tr><td><strong>C · Pasta Corner</strong><br><em>back room</em></td>
+      <td>Seasonal Vegetable Pasta <span class="mono">vegan</span> · Tomato Basil Pasta
+      <span class="mono">vegetarian</span></td><td>queue low · good</td></tr>
+  <tr><td><strong>D · Grab &amp; Go</strong><br><em>near the entrance</em></td>
+      <td>Sandwiches · Fruit · Salads · Drinks</td><td>queue low · good</td></tr>
+</table>
+
+<div class="box key">
+  <div class="bt">On real data — the deliberate call</div>
+  <p>The seeded event is the <strong>demo path</strong>: a scripted two-minute demo needs
+  guaranteed initial state, and you cannot script on data you have not collected yet.</p>
+  <p style="margin-bottom:0"><strong>If you get ahead</strong>, capture today&rsquo;s actual lunch
+  as a <em>second</em> seed with an event switcher — real station and dish names, three tray
+  photos (full / half / nearly empty). Then you get to say: <em>&ldquo;and we ran this on your
+  actual lunch today.&rdquo;</em> The judges ate that food. <strong>Opportunistic, never a
+  dependency.</strong> Ask before photographing anyone; quote people exactly.</p>
+</div>
+
+<h3>Build order — nothing below the line until the line works</h3>
+<table>
+  <tr><td class="num">1</td><td>Guest station list</td></tr>
+  <tr><td class="num">2</td><td>Dietary filtering</td></tr>
+  <tr><td class="num">3</td><td>Staff update form + <strong>quick actions</strong></td></tr>
+  <tr><td class="num">4</td><td>Confirmation screen</td></tr>
+  <tr class="hi"><td class="num">5</td><td><strong>Shared station-state update</strong> — the
+      journey is real here</td></tr>
+  <tr><td class="num">6</td><td>Operations dashboard</td></tr>
+  <tr class="hi"><td class="num">—</td><td><strong>14:15 GATE — the full loop runs on quick
+      actions alone, with no OpenAI in the path.</strong> If it doesn&rsquo;t, you are behind:
+      go to the floor (§05).</td></tr>
+  <tr><td class="num">7</td><td>OpenAI extraction</td></tr>
+  <tr><td class="num">8</td><td>ElevenLabs announcement (EN, then DE)</td></tr>
+  <tr><td class="num">9</td><td>Camera input</td></tr>
+  <tr><td class="num">10</td><td>Visual polish</td></tr>
+</table>
+
+<h3>The clock</h3>
+<table>
+  <tr><td class="t">12:20</td><td>Stub shipped, deployed, a live URL exists</td></tr>
+  <tr><td class="t">12:45</td><td><strong>Bilt go/no-go</strong> — Phase 1 on a real Android phone, or drop it</td></tr>
+  <tr class="hi"><td class="t">14:15</td><td><strong>HARD GATE</strong> — staff action → guest view changes untouched. Ugly is fine.</td></tr>
+  <tr><td class="t">15:00</td><td>Freeze the hero path · <strong>build the manual override</strong> · pre-generate announcements · test scrcpy</td></tr>
+  <tr><td class="t">15:30</td><td><strong>Record the backup video</strong></td></tr>
+  <tr><td class="t">16:00</td><td><strong>FREEZE.</strong> Rehearse the two-device dance twice. Test audio in the room.</td></tr>
+</table>
+
+<h3>Real-time behaviour — on confirmation, in this order</h3>
+<p>save the update → change dish availability → change station status and
+<span class="mono">lastUpdatedAt</span> → create the alert → create the replenishment task →
+recalculate the recommended station → update Guest view → update Operations view → generate the
+announcement.</p>
+</section>
+
+<!-- ==================== 5 ==================== -->
+<section>
+<h2><span class="n">05</span>Demo, fallbacks, pitch</h2>
+<p class="lede">Under two minutes. Step 11 is the entire pitch.</p>
+
+<table>
+  <tr><th style="width:6mm"></th><th style="width:80mm">You say / do</th><th>On screen</th></tr>
+  <tr><td class="num">1</td><td>&ldquo;At large events the problem is rarely that there is no
+      food&hellip;&rdquo; <strong>QR on slide one — ask the room to scan.</strong></td>
+      <td>Guest view, four stations</td></tr>
+  <tr><td class="num">2</td><td>Tap the <strong>Vegan</strong> filter.</td><td>B and C match</td></tr>
+  <tr><td class="num">3</td><td>&ldquo;Station B is the closest match — but look at the
+      queue.&rdquo;</td><td>B: queue high</td></tr>
+  <tr><td class="num">4</td><td>&ldquo;So it already suggests Station C.&rdquo;</td>
+      <td>For You: Station C</td></tr>
+  <tr><td class="num">5–6</td><td>Switch to <strong>Staff View</strong>, select Station B.</td>
+      <td>Station picker</td></tr>
+  <tr><td class="num">7</td><td><em>&ldquo;Vegan Thai Curry is almost finished, and approximately
+      20 guests are waiting.&rdquo;</em></td><td>Recording</td></tr>
+  <tr><td class="num">8–9</td><td>&ldquo;Here&rsquo;s what it understood — and nothing changes
+      until I confirm.&rdquo; Tap Confirm.</td>
+      <td>Confirmation: facts vs inferences, separate rows</td></tr>
+  <tr><td class="num">10</td><td>Station B goes orange → red. Task appears.</td>
+      <td>Red status · replenishment task, high</td></tr>
+  <tr class="hi"><td class="num">11</td><td><strong>Do not touch the guest device. Let it change
+      by itself. Count to two out loud.</strong></td>
+      <td><strong>Guest view updates in the room&rsquo;s hands</strong></td></tr>
+  <tr><td class="num">12–13</td><td>Vegan guests redirected to C. ElevenLabs announces, EN then DE.</td>
+      <td>Announcement</td></tr>
+  <tr><td class="num">14</td><td>&ldquo;And operations already has the alert.&rdquo;</td>
+      <td>Ops: alert + latest update</td></tr>
+</table>
+
+<div class="box warn">
+  <div class="bt">Recovery — build this at 15:00, not at 16:20</div>
+  <p><strong>The manual override:</strong> a hidden control that forces the scripted state change
+  with no network at all. If the parse hangs, tap it and say <em>&ldquo;the parse is real,
+  I&rsquo;m firing the cached one.&rdquo;</em> Honest, and the demo continues.</p>
+  <p><strong>Devices:</strong> iPhone #1 = <strong>guest</strong> (mirrored, the screen that
+  changes untouched) · iPhone #2 = <strong>staff</strong> (in hand, off-screen) · Android =
+  <strong>operations board</strong> and cross-platform proof.</p>
+  <p style="margin-bottom:0"><strong>Mirroring, set up at 15:00.</strong> iPhone → Mac:
+  <strong>QuickTime → File → New Movie Recording → arrow beside record → select the iPhone</strong>
+  (needs a cable and tapping Trust; no wifi involved). Android → Mac:
+  <span class="mono">scrcpy</span> over USB with USB debugging ON. Both need a
+  <strong>data-capable</strong> cable — charge-only cables are common and fail silently. Phone
+  hotspot as the primary network.</p>
+</div>
+
+<h3>Fallbacks — all required</h3>
+<table>
+  <tr><td style="width:42mm">QR scanning fails</td><td>A button: <strong>Enter Demo Event</strong></td></tr>
+  <tr><td>Microphone denied</td><td>Text input, <strong>pre-filled with the staff line</strong></td></tr>
+  <tr><td>ElevenLabs fails</td><td>Pre-generated audio, or the announcement as text</td></tr>
+  <tr><td>OpenAI fails</td><td>A <strong>clearly labelled</strong> cached demo result</td></tr>
+  <tr><td>Backend fails</td><td>Local seeded state, simulated within the session</td></tr>
+  <tr><td>The live build fails</td><td>Tested backup build <strong>and the screen recording</strong></td></tr>
+</table>
+
+<h3>Cut order</h3>
+<p>German announcements → tray-image analysis → QR scanner → replenishment assignment →
+persistent Supabase → dynamic AI recommendation <em>(the deterministic rule stands alone)</em>.</p>
+<p><strong>Never cut:</strong> guest station view · dietary filter · staff update · status change
+· alert · guest redirection · operations dashboard · <strong>the manual override</strong> ·
+<strong>the backup recording</strong>.</p>
+
+<div class="box key">
+  <div class="bt">The floor — the smallest demo that still wins</div>
+  <p>One laptop, two browser windows. Staff window: quick-action <strong>&ldquo;Item sold
+  out.&rdquo;</strong> Guest window: watch it turn red, re-rank, and hear the announcement.</p>
+  <p style="margin-bottom:0"><em>&ldquo;Two windows, one laptop — the loop is real, the transport
+  is simple.&rdquo;</em> <strong>A working loop beats a beautiful app with a broken one.</strong>
+  Know this floor so you don&rsquo;t panic at 15:00.</p>
+</div>
+
+<h3>Do not build</h3>
+<p>Payments · ordering · accounts · GPS or indoor positioning · camera crowd counting · facial
+recognition · tray-volume measurement · wait-time prediction · real B&amp;B integration ·
+inventory management · delivery logistics · push infrastructure · multi-event · App Store
+deployment · ratings or gamification. <strong>Not a complaint box</strong> — guests report
+availability, not grievances. <strong>Not a nutrition tracker.</strong> <strong>No allergen or
+calorie estimation from a photo, ever.</strong></p>
+
+<h3>Pitch — three minutes</h3>
+<p><strong>Hook:</strong> <em>&ldquo;At large events, the problem is rarely that there is no food.
+The problem is that guests and catering teams don&rsquo;t know what&rsquo;s happening across every
+station.&rdquo;</em> → <strong>Problem</strong> (queues, shortages, dietary confusion, fragmented
+comms) → <strong>Product</strong> → <strong>Live demo</strong> → <strong>Business value</strong>
+(guest experience · faster response · better distribution · fewer shortages · directional waste
+reduction · structured event data — <strong>no euro figures, you cannot substantiate one</strong>)
+→ <strong>Technology</strong>, one sentence each, then <em>&ldquo;the model reads, the rules
+decide — that&rsquo;s why it&rsquo;s auditable&rdquo;</em> → <strong>Expansion</strong>
+(conferences, campuses, festivals, stadiums, universities, trade fairs) → <strong>Close:</strong>
+<em>&ldquo;BonaFlow turns every catering station into a connected, responsive part of the
+event.&rdquo;</em></p>
+
+<div class="box key">
+  <div class="bt">Q&amp;A pocket</div>
+  <ul style="margin-bottom:0">
+    <li><strong>&ldquo;Do you detect queues?&rdquo;</strong> → <em>&ldquo;No, and we don&rsquo;t
+        claim to. Your staff already know. We move what they know to everyone who needs it, in
+        three seconds.&rdquo;</em></li>
+    <li><strong>&ldquo;Is this only for events?&rdquo;</strong> → B&amp;B sell event catering
+        explicitly. <strong>Ask a B&amp;B person at lunch how big that line is</strong> and use
+        their number. Don&rsquo;t guess it.</li>
+    <li><strong>&ldquo;What&rsquo;s next?&rdquo;</strong> → <em>&ldquo;Today BonaFlow keeps the
+        event flowing. The same stations know what ran out and what didn&rsquo;t — after the
+        event, that becomes what to cook more of next time.&rdquo;</em></li>
+  </ul>
+</div>
+
+<h3>Design tokens</h3>
+<div class="sw">
+  <div><i style="background:#FBF9F4"></i>#FBF9F4<br>warm off-white</div>
+  <div><i style="background:#14171A"></i>#14171A<br>ink</div>
+  <div><i style="background:#5A6169"></i>#5A6169<br>soft</div>
+  <div><i style="background:#0F766E"></i>#0F766E<br>green · available</div>
+  <div><i style="background:#F08A4B"></i>#F08A4B<br>coral · low</div>
+  <div><i style="background:#B4432B"></i>#B4432B<br>red · urgent</div>
+  <div><i style="background:#D8DDD6"></i>#D8DDD6<br>grey · no update</div>
+</div>
+<p>Premium but friendly. <strong>Live, clear, fresh, operational, trustworthy, immediately
+understandable.</strong> Rounded station cards, large status indicators, simple food icons, clear
+dietary tags, large tap targets, minimal text, bottom navigation, portrait-first.
+<strong>Every status value and timestamp in a monospace face</strong> — monospace-for-data is an
+honesty signal and costs nothing. <strong>Colour carries meaning only in station status</strong>,
+so green/amber/red reads instantly from the back of the room. <strong>Do not copy
+Bella&amp;Bona&rsquo;s visual identity.</strong> Show, visibly: <em>&ldquo;Independent hackathon
+prototype created for demonstration purposes.&rdquo;</em></p>
+
+<h3>Success criteria — must be true at 16:00</h3>
+<table>
+  <tr><td style="width:50%">☐ A judge understands the problem in 15 seconds<br>
+      ☐ Four stations · dietary filter on <strong>declared</strong> tags<br>
+      ☐ Recommends an alternative station<br>
+      ☐ Staff submit voice or text; quick actions work with no AI<br>
+      ☐ Validated extraction against the <strong>closed</strong> id lists<br>
+      ☐ Staff <strong>confirms</strong> before state changes</td>
+      <td>☐ <strong>Guest view changes without being touched</strong><br>
+      ☐ Facts vs inferences visibly separate, with confidence<br>
+      ☐ Alert + task appear; grey state and timestamps visible<br>
+      ☐ ElevenLabs plays the announcement<br>
+      ☐ Manual override tested · <strong>backup video recorded</strong><br>
+      ☐ Disclaimers visible · full flow under two minutes</td></tr>
+</table>
+
+<h3>Dish images</h3>
+<p>Ten CC-licensed placeholders sit in <span class="mono">assets/dishes/</span> so nothing renders
+an empty slot while you build. <strong>Filenames are the contract</strong> — reference images by
+filename, then swapping a placeholder for a real photo is a file overwrite, not a code change.
+<strong>Shoot the real dishes at lunch and overwrite them</strong>, hero dish
+(<span class="mono">vegan-thai-curry.jpg</span>) first. Portrait, one dish per frame, no hands or
+faces, then <span class="mono">sips -Z 900</span> before committing. Details and licensing in
+<span class="mono">assets/dishes/README.md</span>. <strong>Do not substitute Bella&amp;Bona&rsquo;s
+own product photography</strong> — copyrighted, and it contradicts your &ldquo;not
+affiliated&rdquo; disclaimer.</p>
+
+<p class="foot">BonaFlow · 8x × Bella&amp;Bona Mobile Hackathon · 1 August 2026 · Martin &amp;
+Vijay · Spec of record: <span class="mono">BONAFLOW-MASTER-PROMPT.md</span> · Bilt phases:
+<span class="mono">BILT-PROMPT.md</span> — copy from the files, never from this PDF.</p>
+</section>
