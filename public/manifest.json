@@ -1,13 +1,13 @@
 {
-  "name": "Your App Name",
-  "short_name": "Your App",
-  "description": "An app built with Bilt",
+  "name": "BonaFlow",
+  "short_name": "BonaFlow",
+  "description": "Live lunch station status for the 8x Bella & Bona Mobile Hack at Delta Campus, Berlin.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#6366f1",
-  "background_color": "#ffffff",
+  "theme_color": "#FAF6F0",
+  "background_color": "#FAF6F0",
   "icons": [
     {
       "src": "/icons/icon-192.png",

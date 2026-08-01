@@ -162,8 +162,8 @@ export type RecommendationRef = {
 };
 
 const EVENT: EventInfo = {
-  name: 'Future of Work Summit Berlin',
-  venue: 'Delta Campus',
+  name: '8x Bella & Bona Mobile Hack',
+  venue: 'Delta Campus, Berlin',
   guests: 250,
   serviceStart: '12:30',
   serviceEnd: '14:00',
