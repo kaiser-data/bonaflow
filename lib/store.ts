@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 
 import { eventNowIso } from '@/lib/clock';
-import type { DraftInterpretation } from '@/lib/interpret';
 import { computeRecommendations, deriveStationStatus, describeUpdate } from '@/lib/stations';
 
 /**
@@ -67,13 +66,6 @@ export type Station = {
   lastUpdatedAt: string;
 };
 
-export type Announcement = {
-  id: string;
-  body: string;
-  /** ISO local timestamp. */
-  createdAt: string;
-};
-
 /** Attached audio, exactly as the recorder produced it on this device. */
 export type AudioAttachment = {
   uri: string;
@@ -103,9 +95,72 @@ export type UpdateDraft = {
   audio: AudioAttachment | null;
 };
 
+/** What kind of situation a report describes. */
+export type IssueType = 'low_stock' | 'sold_out' | 'queue' | 'closure' | 'resolved' | 'other';
+
+/** A field the reading service concluded rather than heard. Always has a confidence. */
+export type FieldInference = {
+  field: string;
+  value: string;
+  /** 0 to 1. */
+  confidence: number;
+  /** The words it came from, in one short phrase. */
+  basis: string;
+};
+
+/** Only what the staff member actually said. Never merged with the inferences. */
+export type ReportedFacts = {
+  availability: DishAvailability | null;
+  queue: QueueLevel | null;
+  stationClosed: boolean;
+  stationReopened: boolean;
+};
+
+/**
+ * How one report was read, kept with the report itself so operations can show
+ * what was said apart from what was concluded, long after the staff member
+ * confirmed it.
+ *
+ * The redirect fields record a decision made by plain code: the reading service
+ * may *suggest* an alternative station, but it is only used after the app has
+ * checked that the station really holds a matching dish marked available.
+ * Otherwise the deterministic For You rule supplies the target. Code wins.
+ */
+export type UpdateInterpretation = {
+  /** 'model' means the reading service answered; 'keyword' is the offline fallback. */
+  mode: 'model' | 'keyword';
+  /** One-line summary from the service. Empty in keyword mode. */
+  summary: string;
+  issueType: IssueType;
+  /** The service's own confidence in the whole reading, 0 to 1. */
+  confidence: number;
+  /** What was heard. Null in keyword mode, which does not separate the two. */
+  facts: ReportedFacts | null;
+  /** What was concluded, each with a confidence. */
+  inferences: readonly FieldInference[];
+  /** Follow-up the service suggested. Display only — the alert text is code. */
+  suggestedAction: string;
+  /** Alternative station the service suggested, before code checked it. */
+  suggestedStationId: string | null;
+  /** Station guests are actually sent to, after the availability check. */
+  redirectStationId: string | null;
+  /** 'model' = suggestion verified, 'rule' = deterministic rule used, 'none' = nowhere to send. */
+  redirectSource: 'model' | 'rule' | 'none';
+  /** Wording the service proposed. Never spoken as is; kept for the record. */
+  suggestedAnnouncement: string;
+  /** Photo analysis. Always null: the photo is never sent to the service. */
+  observed: string | null;
+  /** Fields corrected before the answer was accepted, in plain language. */
+  corrections: readonly string[];
+  /** Why the offline fallback ran. Null in model mode. */
+  reason: string | null;
+};
+
 export type StaffUpdate = UpdateDraft & {
   id: string;
   createdAt: string;
+  /** How this report was read. Null for quick actions and the manual override. */
+  interpretation: UpdateInterpretation | null;
 };
 
 export type StationAlert = {
@@ -115,6 +170,8 @@ export type StationAlert = {
   priority: Priority;
   message: string;
   recommendedAction: string;
+  /** The staff update this alert came from, so operations can show its reading. */
+  updateId: string | null;
   createdAt: string;
 };
 
@@ -313,8 +370,6 @@ function emitWrite(write: PendingWrite): void {
 type BonaFlowState = {
   event: EventInfo;
   stations: readonly Station[];
-  /** Reverse-chronological announcements. Empty for now. */
-  announcements: readonly Announcement[];
   /** Every confirmed staff report, newest first. */
   updates: readonly StaffUpdate[];
   /** Alerts raised by confirmed reports, newest first. */
@@ -336,16 +391,16 @@ type BonaFlowState = {
   /**
    * How the pending report was read — by the reading service or by the offline
    * keyword fallback — plus what was heard, what was concluded and with what
-   * confidence. Display only: it is never written to the backend.
+   * confidence. Saved with the report on confirm, so operations can show it.
    */
-  draftInterpretation: DraftInterpretation | null;
+  draftInterpretation: UpdateInterpretation | null;
   setMode: (mode: AppMode | null) => void;
   setDietFilter: (filter: DietFilter) => void;
   selectStation: (stationId: string) => void;
   /** Replace the shared data with what the backend returned. */
   hydrate: (snapshot: SharedSnapshot) => void;
   /** Open the confirmation flow with an interpreted report. */
-  startDraft: (draft: UpdateDraft, interpretation?: DraftInterpretation | null) => void;
+  startDraft: (draft: UpdateDraft, interpretation?: UpdateInterpretation | null) => void;
   patchDraft: (patch: Partial<UpdateDraft>) => void;
   clearDraft: () => void;
   /** Apply the pending draft, then clear it. */
@@ -375,11 +430,12 @@ type BonaFlowState = {
 function applyDraft(
   state: BonaFlowState,
   draft: UpdateDraft,
+  interpretation: UpdateInterpretation | null,
 ): { patch: Partial<BonaFlowState>; write: ReportWrite } {
   const createdAt = eventNowIso();
 
-  // 1. save the update
-  const update: StaffUpdate = { ...draft, id: makeId('update'), createdAt };
+  // 1. save the update, together with how it was read
+  const update: StaffUpdate = { ...draft, id: makeId('update'), createdAt, interpretation };
   const updates = [update, ...state.updates];
 
   // 2. + 3. dish availability, then station status and lastUpdatedAt
@@ -415,6 +471,7 @@ function applyDraft(
     priority: draft.priority,
     message: described.alertMessage,
     recommendedAction: described.recommendedAction,
+    updateId: update.id,
     createdAt,
   };
   const alerts: readonly StationAlert[] = [alert, ...state.alerts];
@@ -447,7 +504,6 @@ function applyDraft(
 export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
   event: EVENT,
   stations: SEEDED_STATIONS,
-  announcements: [],
   updates: [],
   alerts: [],
   tasks: [],
@@ -482,14 +538,16 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
     set((state) => (state.draft === null ? state : { draft: { ...state.draft, ...patch } })),
   clearDraft: () => set({ draft: null, draftInterpretation: null }),
   commitDraft: () => {
-    const { draft } = get();
+    const { draft, draftInterpretation } = get();
     if (draft === null) return;
-    const { patch, write } = applyDraft(get(), draft);
+    const { patch, write } = applyDraft(get(), draft, draftInterpretation);
     set({ ...patch, draft: null, draftInterpretation: null });
     emitWrite(write);
   },
+  // Quick actions and the manual override are not read by anything, so they
+  // carry no interpretation: there is nothing that was concluded rather than said.
   applyReport: (draft) => {
-    const { patch, write } = applyDraft(get(), draft);
+    const { patch, write } = applyDraft(get(), draft, null);
     set(patch);
     emitWrite(write);
   },

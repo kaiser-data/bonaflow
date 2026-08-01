@@ -1,10 +1,10 @@
 import type {
-  Announcement,
   DietFilter,
   DietTag,
   Dish,
   DishAvailability,
   Incentive,
+  IssueType,
   Priority,
   QueueLevel,
   RecommendationRef,
@@ -13,7 +13,7 @@ import type {
   StationAlert,
   StationStatus,
 } from '@/lib/store';
-import { isStillValid } from '@/lib/clock';
+import { isStillValid, minutesSince } from '@/lib/clock';
 import { statusColors, type StatusColor } from '@/lib/theme';
 
 /**
@@ -95,6 +95,21 @@ const ACTION_LABELS: Record<ReportAction, string> = {
   none: 'no action needed',
 };
 
+const ISSUE_TYPE_LABELS: Record<IssueType, string> = {
+  low_stock: 'low stock',
+  sold_out: 'sold out',
+  queue: 'queue',
+  closure: 'closure',
+  resolved: 'resolved',
+  other: 'update',
+};
+
+const PRIORITY_COLOR_KEYS: Record<Priority, StatusColor> = {
+  low: 'green',
+  medium: 'orange',
+  high: 'red',
+};
+
 /** low < medium < high < unknown */
 const QUEUE_RANK: Record<QueueLevel, number> = {
   low: 0,
@@ -167,6 +182,117 @@ export function priorityLabel(priority: Priority): string {
 
 export function actionLabel(action: ReportAction): string {
   return ACTION_LABELS[action];
+}
+
+export function issueTypeLabel(issueType: IssueType): string {
+  return ISSUE_TYPE_LABELS[issueType];
+}
+
+export function priorityColor(priority: Priority): string {
+  return statusColors[PRIORITY_COLOR_KEYS[priority]];
+}
+
+/**
+ * What kind of situation a report describes, worked out from the report's own
+ * fields. Deterministic: the reading service may suggest one, but this is what
+ * decides when there is no service answer.
+ */
+export function issueTypeFor(report: {
+  availability: DishAvailability | null;
+  queue: QueueLevel | null;
+  action: ReportAction;
+}): IssueType {
+  if (report.action === 'close_station') return 'closure';
+  if (report.availability === 'sold_out') return 'sold_out';
+  if (report.availability === 'low') return 'low_stock';
+  if (report.availability === 'available' || report.action === 'reopen_station') return 'resolved';
+  if (report.queue === 'high') return 'queue';
+  return 'other';
+}
+
+/**
+ * A station that has not reported for this long is shown as "no recent update",
+ * whatever its last known status was. A silent station is never shown as green:
+ * operations sees the silence instead of a stale reassurance.
+ */
+export const STALE_AFTER_MINUTES = 15;
+
+export function isStale(station: Station): boolean {
+  return minutesSince(station.lastUpdatedAt) > STALE_AFTER_MINUTES;
+}
+
+/** Status as operations should see it. Grey wins over an out-of-date green. */
+export function displayStatus(station: Station): StationStatus {
+  return isStale(station) ? 'no_update' : station.status;
+}
+
+/** Dishes grouped by what the counter actually holds. */
+export function dishesByAvailability(
+  station: Station,
+  availability: DishAvailability,
+): readonly Dish[] {
+  return station.dishes.filter((dish) => dish.availability === availability);
+}
+
+/**
+ * The busiest station: highest queue level, ties keep the seeded order. A queue
+ * nobody has reported is not counted as busy, so it can never win.
+ */
+export function mostCrowdedStation(stations: readonly Station[]): Station | null {
+  let leader: Station | null = null;
+
+  for (const station of stations) {
+    if (station.queue === 'unknown') continue;
+    if (leader === null || QUEUE_RANK[station.queue] > QUEUE_RANK[leader.queue]) leader = station;
+  }
+
+  return leader;
+}
+
+/** The single declared tag used to match an alternative. Never model-decided. */
+export function dietFilterForDish(dish: Dish | null | undefined): DietFilter {
+  if (dish === null || dish === undefined) return 'all';
+  return dish.tags[0] ?? 'all';
+}
+
+export type RedirectTarget = {
+  station: Station;
+  dish: Dish;
+  filter: DietFilter;
+  /** 'model' = the suggestion passed the availability check; 'rule' = code chose. */
+  source: 'model' | 'rule';
+};
+
+/**
+ * Where guests should be sent instead.
+ *
+ * The reading service may suggest a station, but the suggestion is only used
+ * after this checks, in plain code, that the station really holds a dish with
+ * the same declared dietary tag marked "available". If it does not, the
+ * deterministic For You rule picks the target instead. Code wins.
+ */
+export function verifyRedirect(input: {
+  stations: readonly Station[];
+  awayFromStationId: string;
+  dish: Dish | null;
+  suggestedStationId: string | null;
+}): RedirectTarget | null {
+  const filter = dietFilterForDish(input.dish);
+  const elsewhere = input.stations.filter((station) => station.id !== input.awayFromStationId);
+
+  if (input.suggestedStationId !== null) {
+    const suggested = elsewhere.find((station) => station.id === input.suggestedStationId);
+    const match = suggested?.dishes.find(
+      (dish) => dishMatchesFilter(dish, filter) && dish.availability === 'available',
+    );
+    if (suggested !== undefined && match !== undefined) {
+      return { station: suggested, dish: match, filter, source: 'model' };
+    }
+  }
+
+  const ruled = recommendStation(elsewhere, filter);
+  if (ruled === null) return null;
+  return { station: ruled.station, dish: ruled.dish, filter, source: 'rule' };
 }
 
 function dishMatchesFilter(dish: Dish, filter: DietFilter): boolean {
@@ -316,11 +442,6 @@ export function announcementText(
   const action = alert.recommendedAction.trim();
   if (action.length === 0 || action === 'No action needed') return `Attention. ${message}`;
   return `Attention. ${message} Recommended action: ${action.replace(' — ', ', ')}.`;
-}
-
-/** Newest first. */
-export function sortAnnouncements(announcements: readonly Announcement[]): readonly Announcement[] {
-  return [...announcements].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 /** 24h clock, e.g. "12:41". Kept mono-friendly and locale independent. */

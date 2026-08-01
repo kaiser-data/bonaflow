@@ -25,6 +25,7 @@ import {
 } from 'expo-router';
 
 import { colors } from '@/lib/theme';
+import { prewarmStageAnnouncements } from '@/lib/announce';
 import { initPostHog } from '@/lib/posthog';
 import { registerServiceWorker } from '@/lib/registerServiceWorker';
 import { reportErrorToParent } from '@/lib/reportPreviewError';
@@ -139,6 +140,13 @@ export default function RootLayout() {
   // seconds so guest, staff and operations views follow reports made elsewhere.
   useBackendSync();
 
+  // Generates the two spoken announcement lines while the app is starting, so the
+  // stage path plays from the device instead of waiting on a network call. Silent
+  // on failure: every announcement is on screen as text as well.
+  useEffect(() => {
+    void prewarmStageAnnouncements();
+  }, []);
+
   useEffect(() => {
     if (loaded || error) {
       void SplashScreen.hideAsync();
@@ -165,6 +173,7 @@ export default function RootLayout() {
             }}
           >
             <Stack.Screen name="index" options={{ title: 'BonaFlow', headerShown: false }} />
+            <Stack.Screen name="join" options={{ title: 'Join event' }} />
             <Stack.Screen name="(tabs)" options={{ title: 'BonaFlow', headerShown: false }} />
             <Stack.Screen name="staff" options={{ title: 'Staff', headerShown: false }} />
             <Stack.Screen name="staff-confirm" options={{ title: 'Confirm update' }} />
@@ -176,7 +185,7 @@ export default function RootLayout() {
                 contentStyle: { backgroundColor: colors.background },
               }}
             />
-            <Stack.Screen name="operations" options={{ title: 'Operations' }} />
+            <Stack.Screen name="operations" options={{ title: 'Operations', headerShown: false }} />
           </Stack>
           <InstallPrompt />
         </HeroUINativeProvider>

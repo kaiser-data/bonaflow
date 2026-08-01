@@ -33,7 +33,7 @@ export function AnnounceButton({ text, label = 'Announce' }: AnnounceButtonProps
   return (
     <View className="gap-1.5">
       <Touchable
-        accessibilityLabel={`${label} this alert out loud`}
+        accessibilityLabel={`${label} — play out loud`}
         accessibilityState={{ disabled: speaking, busy: speaking }}
         disabled={speaking}
         onPress={() => void announce()}

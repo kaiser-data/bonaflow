@@ -20,7 +20,7 @@ export default function ModeSelectScreen() {
       router.push('/stations');
       return;
     }
-    router.push(mode === 'staff' ? '/staff/report' : '/operations');
+    router.push(mode === 'staff' ? '/staff/report' : '/operations/overview');
   };
 
   return (
@@ -64,6 +64,15 @@ export default function ModeSelectScreen() {
         <MonoText className="text-muted text-xs">
           {event.venue} · {event.guests} guests · lunch {event.serviceStart}–{event.serviceEnd}
         </MonoText>
+        <Touchable
+          accessibilityLabel="Join by scanning the event code"
+          onPress={() => router.push('/join')}
+          className="flex-none items-start justify-center"
+        >
+          <Text className="text-foreground text-base font-semibold underline">
+            Join by event code
+          </Text>
+        </Touchable>
       </View>
     </Screen>
   );

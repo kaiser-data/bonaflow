@@ -11,12 +11,15 @@ import {
   type Dish,
   type DishAvailability,
   type EventInfo,
+  type FieldInference,
   type Incentive,
+  type IssueType,
   type PendingWrite,
   type Priority,
   type QueueLevel,
   type ReplenishmentTask,
   type ReportAction,
+  type ReportedFacts,
   type ReportSource,
   type ReportWrite,
   type SharedSnapshot,
@@ -25,6 +28,7 @@ import {
   type StationAlert,
   type StationStatus,
   type TaskStatus,
+  type UpdateInterpretation,
 } from '@/lib/store';
 
 /**
@@ -84,6 +88,7 @@ type UpdateRow = {
   source: string;
   photo_uri: string | null;
   audio: unknown;
+  interpretation: unknown;
   created_at: string;
 };
 
@@ -94,6 +99,7 @@ type AlertRow = {
   priority: string;
   message: string;
   recommended_action: string;
+  update_id: string | null;
   created_at: string;
 };
 
@@ -141,6 +147,14 @@ const ACTIONS: readonly ReportAction[] = [
   'none',
 ];
 const SOURCES: readonly ReportSource[] = ['quick_action', 'text', 'voice', 'manual_override'];
+const ISSUE_TYPES: readonly IssueType[] = [
+  'low_stock',
+  'sold_out',
+  'queue',
+  'closure',
+  'resolved',
+  'other',
+];
 
 /**
  * Backend columns are plain text, so each value is matched against the set the
@@ -201,6 +215,80 @@ function asAudio(value: unknown): AudioAttachment | null {
   };
 }
 
+function asFacts(value: unknown): ReportedFacts | null {
+  const record = asRecord(value);
+  if (record === null) return null;
+  return {
+    availability: asAvailability(
+      typeof record.availability === 'string' ? record.availability : '',
+    ),
+    queue: asQueue(typeof record.queue === 'string' ? record.queue : ''),
+    stationClosed: record.stationClosed === true,
+    stationReopened: record.stationReopened === true,
+  };
+}
+
+function asInferences(value: unknown): readonly FieldInference[] {
+  if (!Array.isArray(value)) return [];
+
+  const inferences: FieldInference[] = [];
+  for (const entry of value) {
+    const record = asRecord(entry);
+    if (record === null || typeof record.field !== 'string') continue;
+    const confidence = typeof record.confidence === 'number' ? record.confidence : Number.NaN;
+    if (!Number.isFinite(confidence)) continue;
+    inferences.push({
+      field: record.field,
+      value: typeof record.value === 'string' ? record.value : '',
+      confidence: Math.min(1, Math.max(0, confidence)),
+      basis: typeof record.basis === 'string' ? record.basis : '',
+    });
+  }
+
+  return inferences;
+}
+
+function asStrings(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === 'string');
+}
+
+function asText(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+/** How a report was read, as it was stored with the update. */
+function asInterpretation(value: unknown): UpdateInterpretation | null {
+  const record = asRecord(value);
+  if (record === null) return null;
+
+  const redirectSource = record.redirectSource;
+
+  return {
+    mode: record.mode === 'model' ? 'model' : 'keyword',
+    summary: asText(record.summary),
+    issueType: match(ISSUE_TYPES, asText(record.issueType)) ?? 'other',
+    confidence:
+      typeof record.confidence === 'number' && Number.isFinite(record.confidence)
+        ? Math.min(1, Math.max(0, record.confidence))
+        : 0,
+    facts: asFacts(record.facts),
+    inferences: asInferences(record.inferences),
+    suggestedAction: asText(record.suggestedAction),
+    suggestedStationId:
+      typeof record.suggestedStationId === 'string' ? record.suggestedStationId : null,
+    redirectStationId:
+      typeof record.redirectStationId === 'string' ? record.redirectStationId : null,
+    redirectSource:
+      redirectSource === 'model' || redirectSource === 'rule' ? redirectSource : 'none',
+    suggestedAnnouncement: asText(record.suggestedAnnouncement),
+    // Text only: the photo is never sent, so there is never an observation.
+    observed: null,
+    corrections: asStrings(record.corrections),
+    reason: typeof record.reason === 'string' ? record.reason : null,
+  };
+}
+
 function asIncentive(value: unknown): Incentive | null {
   const record = asRecord(value);
   if (record === null) return null;
@@ -252,6 +340,7 @@ function toUpdate(row: UpdateRow): StaffUpdate {
     source: asSource(row.source),
     photoUri: row.photo_uri,
     audio: asAudio(row.audio),
+    interpretation: asInterpretation(row.interpretation),
     createdAt: row.created_at,
   };
 }
@@ -264,6 +353,7 @@ function toAlert(row: AlertRow): StationAlert {
     priority: asPriority(row.priority),
     message: row.message,
     recommendedAction: row.recommended_action,
+    updateId: row.update_id,
     createdAt: row.created_at,
   };
 }
@@ -335,6 +425,7 @@ function reportPayload(write: ReportWrite): Record<string, unknown> {
       source: update.source,
       photo_uri: update.photoUri,
       audio: update.audio,
+      interpretation: update.interpretation,
       created_at: update.createdAt,
     },
     station:
@@ -353,6 +444,7 @@ function reportPayload(write: ReportWrite): Record<string, unknown> {
       priority: alert.priority,
       message: alert.message,
       recommended_action: alert.recommendedAction,
+      update_id: alert.updateId,
       created_at: alert.createdAt,
     },
     task:

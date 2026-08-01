@@ -28,7 +28,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         NSMicrophoneUsageDescription:
           'BonaFlow uses the microphone so catering staff can report station updates by voice.',
         NSCameraUsageDescription:
-          'BonaFlow uses the camera so catering staff can photograph a serving tray.',
+          'BonaFlow uses the camera to scan the event code and to photograph a serving tray.',
         NSPhotoLibraryUsageDescription:
           'BonaFlow lets staff attach an existing photo of a serving tray.',
       },
@@ -57,6 +57,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         {
           microphonePermission:
             'BonaFlow uses the microphone so catering staff can report station updates by voice.',
+        },
+      ],
+      [
+        'expo-camera',
+        {
+          cameraPermission: 'BonaFlow uses the camera to scan the event code.',
+          recordAudioAndroid: false,
         },
       ],
       [

@@ -217,17 +217,62 @@ async function playAnnouncement(uri: string): Promise<void> {
   release(player);
 }
 
-/** Cached announcement file. One clip plays at a time, so one file is enough. */
-function writeAnnouncementFile(audioBase64: string, extension: string): string {
-  const safeExtension = /^[a-z0-9]{1,5}$/.test(extension) ? extension : 'mp3';
-  const file = new File(Paths.cache, `bonaflow-announcement.${safeExtension}`);
-  file.create({ overwrite: true, intermediates: true });
-  file.write(audioBase64, { encoding: 'base64' });
-  return file.uri;
+/**
+ * Clips already generated on this device, keyed by the exact text.
+ *
+ * This is what keeps the stage path off the network: the two announcement lines
+ * are generated once, when the app starts, and every later play reads the file
+ * (or, in a browser, the in-memory copy) instead of calling the voice service.
+ * The service only returns mp3, so one extension is enough.
+ */
+const CLIP_DIRECTORY = 'announcements';
+const webClips = new Map<string, string>();
+
+function clipKey(text: string): string {
+  let hash = 5381;
+  for (let index = 0; index < text.length; index += 1) {
+    hash = ((hash << 5) + hash + text.charCodeAt(index)) | 0;
+  }
+  return (hash >>> 0).toString(36);
 }
 
-/** Speaks a line out loud. The text is written by app code, never by a model. */
-export async function speakAnnouncement(text: string): Promise<SpeakOutcome> {
+function clipFile(text: string): File {
+  return new File(Paths.document, CLIP_DIRECTORY, `${clipKey(text)}.mp3`);
+}
+
+/** The clip for this exact line if it is already on the device, else null. */
+function cachedClipUri(text: string): string | null {
+  if (Platform.OS === 'web') return webClips.get(clipKey(text)) ?? null;
+
+  try {
+    const file = clipFile(text);
+    return file.exists ? file.uri : null;
+  } catch {
+    return null;
+  }
+}
+
+function storeClip(text: string, audioBase64: string, mimeType: string): string | null {
+  try {
+    if (Platform.OS === 'web') {
+      const uri = `data:${mimeType};base64,${audioBase64}`;
+      webClips.set(clipKey(text), uri);
+      return uri;
+    }
+
+    const file = clipFile(text);
+    file.create({ overwrite: true, intermediates: true });
+    file.write(audioBase64, { encoding: 'base64' });
+    return file.uri;
+  } catch {
+    return null;
+  }
+}
+
+type ClipOutcome = { ok: true; uri: string } | { ok: false; reason: string };
+
+/** Asks the voice service for a line and keeps the result for next time. */
+async function generateClip(text: string): Promise<ClipOutcome> {
   const response = await callVoiceService({ action: 'tts', text }, SPEAK_TIMEOUT_MS);
   if (response === null) return { ok: false, reason: OFFLINE_SPEAK };
 
@@ -236,15 +281,45 @@ export async function speakAnnouncement(text: string): Promise<SpeakOutcome> {
     return { ok: false, reason: response.error ?? OFFLINE_SPEAK };
   }
 
-  const mimeType = response.mimeType ?? 'audio/mpeg';
-  const extension = response.extension ?? 'mp3';
+  const uri = storeClip(text, audioBase64, response.mimeType ?? 'audio/mpeg');
+  if (uri === null) return { ok: false, reason: 'This device could not store the announcement.' };
+  return { ok: true, uri };
+}
+
+/**
+ * Generates a line ahead of time without playing it, so the button that plays it
+ * later never waits on a network call. Failure is silent: the caller shows the
+ * text either way.
+ */
+export async function prewarmAnnouncement(text: string): Promise<boolean> {
+  if (text.trim().length === 0) return false;
+  if (cachedClipUri(text) !== null) return true;
+  const clip = await generateClip(text);
+  return clip.ok;
+}
+
+/**
+ * Speaks a line out loud. The text is written by app code, never by a model.
+ * A clip already on the device plays with no network call at all; otherwise it is
+ * generated once and kept. If neither works, the reason comes back and the caller
+ * keeps the line on screen as text — never a silent failure.
+ */
+export async function speakAnnouncement(text: string): Promise<SpeakOutcome> {
+  const cached = cachedClipUri(text);
+  if (cached !== null) {
+    try {
+      await playAnnouncement(cached);
+      return { ok: true };
+    } catch {
+      // The stored clip could not be played; fall through and ask again.
+    }
+  }
+
+  const clip = await generateClip(text);
+  if (!clip.ok) return { ok: false, reason: clip.reason };
 
   try {
-    const uri =
-      Platform.OS === 'web'
-        ? `data:${mimeType};base64,${audioBase64}`
-        : writeAnnouncementFile(audioBase64, extension);
-    await playAnnouncement(uri);
+    await playAnnouncement(clip.uri);
     return { ok: true };
   } catch {
     return { ok: false, reason: 'This device could not play the announcement.' };

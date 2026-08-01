@@ -1,14 +1,19 @@
 import { backendConfigured, bilt } from '@/lib/backend';
 import { interpretReport } from '@/lib/reports';
+import { issueTypeFor, verifyRedirect } from '@/lib/stations';
 import type {
   AudioAttachment,
   DishAvailability,
+  FieldInference,
+  IssueType,
   Priority,
   QueueLevel,
   ReportAction,
+  ReportedFacts,
   ReportSource,
   Station,
   UpdateDraft,
+  UpdateInterpretation,
 } from '@/lib/store';
 
 /**
@@ -25,6 +30,14 @@ import type {
  * activity feed as evidence for a human, so `observed` is always null and a
  * report with no photo is read exactly the same way as one with a photo.
  *
+ * Two things the answer can never decide:
+ *   - the incentive. It is an operations lever; the schema has no field for it
+ *     and any offer wording in the suggested announcement is thrown away.
+ *   - where guests are sent. The suggested alternative station is only used
+ *     after `verifyRedirect` has checked in plain code that the station really
+ *     holds a matching dish marked available. Otherwise the deterministic For
+ *     You rule decides. Code wins.
+ *
  * The deterministic keyword interpreter in lib/reports.ts is the automatic
  * fallback. If the call fails, times out, or the answer fails validation, the
  * keyword extraction runs instead and the confirmation screen is labelled
@@ -39,7 +52,8 @@ import type {
 const CALL_TIMEOUT_MS = 10000;
 
 /** Shown on the confirmation screen whenever the keyword fallback was used. */
-export const OFFLINE_INTERPRETATION_LABEL = 'offline interpretation — please check the fields';
+export const OFFLINE_INTERPRETATION_LABEL =
+  'cached demo result — offline interpretation, please check the fields';
 
 const UNREACHABLE = 'The reading service could not be reached.';
 
@@ -54,45 +68,24 @@ const ACTIONS: readonly ReportAction[] = [
   'none',
 ];
 const PRIORITIES: readonly Priority[] = ['low', 'medium', 'high'];
+const ISSUE_TYPES: readonly IssueType[] = [
+  'low_stock',
+  'sold_out',
+  'queue',
+  'closure',
+  'resolved',
+  'other',
+];
 
-/** A field the model concluded rather than heard. Always carries a confidence. */
-export type FieldInference = {
-  field: string;
-  value: string;
-  /** 0 to 1. */
-  confidence: number;
-  /** The words it came from, in one short phrase. */
-  basis: string;
-};
+/** Kept for the screens that already import these names from here. */
+export type { FieldInference, ReportedFacts } from '@/lib/store';
 
-/** Only what the staff member actually said. Kept apart from the inferences. */
-export type ReportedFacts = {
-  availability: DishAvailability | null;
-  queue: QueueLevel | null;
-  stationClosed: boolean;
-  stationReopened: boolean;
-};
-
-export type DraftInterpretation = {
-  /** 'model' means the reading service answered; 'keyword' is the fallback. */
-  mode: 'model' | 'keyword';
-  /** One-line summary from the model. Empty in keyword mode. */
-  summary: string;
-  /** What was heard. Null in keyword mode, which does not separate the two. */
-  facts: ReportedFacts | null;
-  /** What was concluded, each with a confidence. */
-  inferences: readonly FieldInference[];
-  /** Photo analysis. Always null: the photo is never sent to the model. */
-  observed: string | null;
-  /** Fields the server corrected before answering, in plain language. */
-  corrections: readonly string[];
-  /** Why the fallback ran. Null in model mode. */
-  reason: string | null;
-};
+/** The reading of the report currently being confirmed. */
+export type DraftInterpretation = UpdateInterpretation;
 
 export type InterpretationResult = {
   draft: UpdateDraft;
-  interpretation: DraftInterpretation;
+  interpretation: UpdateInterpretation;
 };
 
 type InterpretInput = {
@@ -112,6 +105,8 @@ type InterpretResponse = {
   update?: Record<string, unknown>;
   reportedFacts?: Record<string, unknown>;
   aiInferences?: unknown;
+  recommendedAlternativeStationId?: unknown;
+  guestAnnouncement?: unknown;
   observed?: unknown;
   corrections?: unknown;
 };
@@ -126,6 +121,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return isRecord(value) ? value : null;
+}
+
+function asText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
 }
 
 async function withTimeout<T>(work: Promise<T>, ms: number, onTimeout: T): Promise<T> {
@@ -186,6 +185,11 @@ function readCorrections(value: unknown): readonly string[] {
   return value.filter((entry): entry is string => typeof entry === 'string');
 }
 
+function readConfidence(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
+  return Math.min(1, Math.max(0, value));
+}
+
 /**
  * Turns the validated answer into a draft. The station and dish ids were already
  * checked against the closed lists server-side, and they are checked again here
@@ -239,18 +243,64 @@ function readFacts(value: unknown): ReportedFacts | null {
   };
 }
 
+/**
+ * Runs the redirection check for a draft and records what happened, so the alert
+ * can say whether the suggestion was used or overruled.
+ */
+function resolveRedirect(
+  draft: UpdateDraft,
+  stations: readonly Station[],
+  suggestedStationId: string | null,
+): Pick<
+  UpdateInterpretation,
+  'suggestedStationId' | 'redirectStationId' | 'redirectSource' | 'corrections'
+> {
+  const station = stations.find((entry) => entry.id === draft.stationId);
+  const dish = station?.dishes.find((entry) => entry.id === draft.dishId) ?? null;
+  const target = verifyRedirect({
+    stations,
+    awayFromStationId: draft.stationId,
+    dish,
+    suggestedStationId,
+  });
+
+  const corrections: string[] = [];
+  if (
+    suggestedStationId !== null &&
+    (target === null || target.source === 'rule' || target.station.id !== suggestedStationId)
+  ) {
+    corrections.push(
+      'the suggested alternative station had no matching dish marked available, so the deterministic rule chose instead',
+    );
+  }
+
+  return {
+    suggestedStationId,
+    redirectStationId: target?.station.id ?? null,
+    redirectSource: target === null ? 'none' : target.source,
+    corrections,
+  };
+}
+
 /** The deterministic fallback, labelled so the screen can say what happened. */
 function keywordResult(input: InterpretInput, reason: string): InterpretationResult {
+  const draft = interpretReport(input);
+  const redirect = resolveRedirect(draft, input.stations, null);
+
   return {
-    draft: interpretReport(input),
+    draft,
     interpretation: {
       mode: 'keyword',
       summary: '',
+      issueType: issueTypeFor(draft),
+      confidence: 0,
       facts: null,
       inferences: [],
+      suggestedAction: '',
+      suggestedAnnouncement: '',
       observed: null,
-      corrections: [],
       reason,
+      ...redirect,
     },
   };
 }
@@ -274,17 +324,32 @@ export async function interpretStaffReport(input: InterpretInput): Promise<Inter
   const draft = toDraft(response, input);
   if (draft === null) return keywordResult(input, 'That update could not be read reliably.');
 
+  const update = asRecord(response.update) ?? {};
+  const suggestedStationId =
+    typeof response.recommendedAlternativeStationId === 'string' &&
+    input.stations.some((station) => station.id === response.recommendedAlternativeStationId)
+      ? response.recommendedAlternativeStationId
+      : null;
+  const redirect = resolveRedirect(draft, input.stations, suggestedStationId);
+
   return {
     draft,
     interpretation: {
       mode: 'model',
-      summary: typeof response.summary === 'string' ? response.summary : '',
+      summary: asText(response.summary),
+      // The service's own reading of the situation, checked against the values
+      // this app accepts; the draft's own fields decide if it sent nonsense.
+      issueType: match(ISSUE_TYPES, update.issueType) ?? issueTypeFor(draft),
+      confidence: readConfidence(update.confidence),
       facts: readFacts(response.reportedFacts),
       inferences: readInferences(response.aiInferences),
+      suggestedAction: asText(update.recommendedAction),
+      suggestedAnnouncement: asText(response.guestAnnouncement),
       // Text only: there is never a photo observation to show.
       observed: typeof response.observed === 'string' ? response.observed : null,
-      corrections: readCorrections(response.corrections),
       reason: null,
+      ...redirect,
+      corrections: [...readCorrections(response.corrections), ...redirect.corrections],
     },
   };
 }
