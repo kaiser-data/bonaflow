@@ -31,11 +31,11 @@ export const colors = {
 /**
  * Bella&Bona house colours, read from the caterer's own artwork.
  *
- * They belong to the brand, not to the operational palette above, and are used by
- * the start-screen lockup (components/brand/BrandLockup.tsx) and the brand-coloured
- * links on that screen only: the pink must never carry a status meaning, and this
- * green must not be confused with `statusColors.green` ("available"), which is a
- * different, teal green.
+ * They belong to the brand, not to the operational palette above, and are used on
+ * the start screen only — the display headline, its pink rule and the pink event
+ * chip: the pink must never carry a status meaning, and this green must not be
+ * confused with `statusColors.green` ("available"), which is a different, teal
+ * green.
  */
 export const brand = {
   /** Logo background */
