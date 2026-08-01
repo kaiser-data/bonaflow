@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 
 import { eventNowIso } from '@/lib/clock';
+import { deviceId } from '@/lib/device';
+import { balanceFor, findReward, pointsFor, redemptionCode } from '@/lib/rewards';
 import { computeRecommendations, deriveStationStatus, describeUpdate } from '@/lib/stations';
 
 /**
@@ -256,6 +258,110 @@ export type RecommendationRef = {
   reason: string;
 };
 
+/* ---------------------------------------------------------------------------
+ * Guest feedback on a meal, and what the guest earns for giving it.
+ *
+ * This is the other direction of the same conversation: staff report what is
+ * running out, guests report what went in the bin and why. The reasons are a
+ * closed list so the answers can be counted, and the guest's own words are kept
+ * verbatim alongside them so the kitchen can read what a count cannot say.
+ * ------------------------------------------------------------------------- */
+
+/** How much of the bowl was left. */
+export type LeftoverAmount = 'none' | 'a_little' | 'about_half' | 'most_of_it';
+
+/**
+ * Why food was left, or why the meal disappointed. Closed list: a reason has to
+ * be countable to be worth anything to a kitchen, and free text alone cannot be
+ * counted. `other` exists so nobody is forced into a wrong box.
+ */
+export type LeftoverReason =
+  | 'portion_too_large'
+  | 'not_tasty'
+  | 'too_spicy'
+  | 'too_salty'
+  | 'bland'
+  | 'cold'
+  | 'texture'
+  | 'not_fresh'
+  | 'disliked_ingredient'
+  | 'no_time'
+  | 'wanted_something_else'
+  | 'other';
+
+export type RatingSource = 'voice' | 'text' | 'taps';
+
+export type RatingLanguage = 'en' | 'de' | 'other';
+
+export type RatingSentiment = 'positive' | 'mixed' | 'negative' | 'unclear';
+
+/** Only what the guest actually said. Never merged with what was concluded. */
+export type ReportedRating = {
+  /** 1 to 5, and only when a human said a number. */
+  score: number | null;
+  leftover: LeftoverAmount | null;
+  reasons: readonly LeftoverReason[];
+};
+
+/**
+ * How one spoken or typed review was read, kept with the rating so operations can
+ * still tell heard from concluded long afterwards.
+ */
+export type RatingInterpretation = {
+  /** 'model' means the reading service answered; 'keyword' is the offline reader. */
+  mode: 'model' | 'keyword';
+  summary: string;
+  confidence: number;
+  /** What the guest said. */
+  reported: ReportedRating;
+  /** Reasons the service suggested but the guest never said. Shown as suggestions. */
+  suggestedReasons: readonly LeftoverReason[];
+  inferences: readonly FieldInference[];
+  sentiment: RatingSentiment;
+  /** One line for the kitchen. Never spoken to guests, never an offer. */
+  kitchenNote: string;
+  corrections: readonly string[];
+  /** Why the offline reader ran. Null in model mode. */
+  reason: string | null;
+};
+
+/** A review in progress. Nothing is stored until the guest confirms it. */
+export type RatingDraft = {
+  stationId: string;
+  dishId: string;
+  score: number | null;
+  leftover: LeftoverAmount | null;
+  reasons: readonly LeftoverReason[];
+  /** The guest's own words, in the language they used. Never rewritten. */
+  comment: string;
+  language: RatingLanguage;
+  source: RatingSource;
+  audio: AudioAttachment | null;
+};
+
+export type MealRating = RatingDraft & {
+  id: string;
+  /** Anonymous device, never a person. */
+  deviceId: string;
+  interpretation: RatingInterpretation | null;
+  /** Decided by the backend; the same rule is applied locally so the UI matches. */
+  pointsAwarded: number;
+  createdAt: string;
+};
+
+/** A reward a guest has taken, shown at the counter as proof. */
+export type Redemption = {
+  id: string;
+  deviceId: string;
+  rewardId: string;
+  rewardLabel: string;
+  cost: number;
+  /** Short code the counter can read off the screen. */
+  code: string;
+  stationId: string | null;
+  createdAt: string;
+};
+
 const EVENT: EventInfo = {
   name: '8x Bella & Bona Mobile Hack',
   venue: 'Delta Campus, Berlin',
@@ -436,6 +542,9 @@ export type SharedSnapshot = {
   updates: readonly StaffUpdate[];
   alerts: readonly StationAlert[];
   tasks: readonly ReplenishmentTask[];
+  /** Every guest rating, newest first. Shared: operations reads the same rows. */
+  ratings: readonly MealRating[];
+  redemptions: readonly Redemption[];
 };
 
 /** A confirmed report, ready to be pushed to the backend. */
@@ -452,7 +561,9 @@ export type ReportWrite = {
 export type PendingWrite =
   | ReportWrite
   | { kind: 'task_completed'; taskId: string; completedAt: string }
-  | { kind: 'incentive'; incentive: Incentive | null };
+  | { kind: 'incentive'; incentive: Incentive | null }
+  | { kind: 'rating'; rating: MealRating }
+  | { kind: 'redemption'; redemption: Redemption };
 
 let writeBridge: ((write: PendingWrite) => void) | null = null;
 
@@ -495,6 +606,18 @@ type BonaFlowState = {
    * confidence. Saved with the report on confirm, so operations can show it.
    */
   draftInterpretation: UpdateInterpretation | null;
+  /** Every guest rating, newest first. */
+  ratings: readonly MealRating[];
+  /** Rewards guests have taken, newest first. */
+  redemptions: readonly Redemption[];
+  /** Pending guest review. Nothing is stored while this is set. */
+  ratingDraft: RatingDraft | null;
+  /** How the pending review was read. */
+  ratingInterpretation: RatingInterpretation | null;
+  /** The rating just confirmed, so the screen can show what it earned. */
+  lastRating: MealRating | null;
+  /** The reward just taken, so the screen can show the code to the counter. */
+  lastRedemption: Redemption | null;
   setMode: (mode: AppMode | null) => void;
   setDietFilter: (filter: DietFilter) => void;
   selectStation: (stationId: string) => void;
@@ -511,6 +634,15 @@ type BonaFlowState = {
   completeTask: (taskId: string) => void;
   /** Operations lever: turn the seeded incentive on or off. */
   setIncentiveActive: (active: boolean) => void;
+  /** Open the review confirmation flow with a read review. */
+  startRatingDraft: (draft: RatingDraft, interpretation?: RatingInterpretation | null) => void;
+  patchRatingDraft: (patch: Partial<RatingDraft>) => void;
+  clearRatingDraft: () => void;
+  /** Store the pending review, award its points, then clear the draft. */
+  commitRatingDraft: () => void;
+  /** Take a reward, if this device has earned enough for it. */
+  redeemReward: (rewardId: string) => void;
+  clearLastRedemption: () => void;
 };
 
 /**
@@ -616,6 +748,12 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
   selectedStationId: SEEDED_STATIONS[0].id,
   draft: null,
   draftInterpretation: null,
+  ratings: [],
+  redemptions: [],
+  ratingDraft: null,
+  ratingInterpretation: null,
+  lastRating: null,
+  lastRedemption: null,
   setMode: (mode) => set({ mode }),
   setDietFilter: (dietFilter) => set({ dietFilter }),
   selectStation: (selectedStationId) => set({ selectedStationId }),
@@ -626,6 +764,8 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
       updates: snapshot.updates,
       alerts: snapshot.alerts,
       tasks: snapshot.tasks,
+      ratings: snapshot.ratings,
+      redemptions: snapshot.redemptions,
       recommendations: computeRecommendations(snapshot.stations),
       revision: state.revision + 1,
       lastSyncedAt: eventNowIso(),
@@ -669,6 +809,81 @@ export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
     set({ event: { ...event, incentive }, revision: get().revision + 1 });
     emitWrite({ kind: 'incentive', incentive });
   },
+  startRatingDraft: (ratingDraft, ratingInterpretation = null) =>
+    set({ ratingDraft, ratingInterpretation, lastRating: null }),
+  patchRatingDraft: (patch) =>
+    set((state) =>
+      state.ratingDraft === null ? state : { ratingDraft: { ...state.ratingDraft, ...patch } },
+    ),
+  clearRatingDraft: () => set({ ratingDraft: null, ratingInterpretation: null }),
+  /**
+   * The guest has checked every field. The review is stored with the points it
+   * earned — the same rule the backend applies, so the total shown on the phone
+   * is the total the backend will hold — and the draft is cleared.
+   */
+  commitRatingDraft: () => {
+    const state = get();
+    const { ratingDraft, ratingInterpretation } = state;
+    if (ratingDraft === null) return;
+
+    const id = deviceId();
+    const rating: MealRating = {
+      ...ratingDraft,
+      id: makeId('rating'),
+      deviceId: id,
+      interpretation: ratingInterpretation,
+      pointsAwarded: pointsFor({
+        deviceId: id,
+        dishId: ratingDraft.dishId,
+        source: ratingDraft.source,
+        reasons: ratingDraft.reasons,
+        ratings: state.ratings,
+      }),
+      createdAt: eventNowIso(),
+    };
+
+    set({
+      ratings: [rating, ...state.ratings],
+      ratingDraft: null,
+      ratingInterpretation: null,
+      lastRating: rating,
+      revision: state.revision + 1,
+    });
+    emitWrite({ kind: 'rating', rating });
+  },
+  /**
+   * Taking a reward. The balance is checked here so the button cannot spend
+   * points the device does not have, and checked again by the backend, which is
+   * the authority. Nothing is deducted anywhere: the balance is always earned
+   * minus taken, computed from the rows themselves.
+   */
+  redeemReward: (rewardId) => {
+    const state = get();
+    const reward = findReward(rewardId);
+    if (reward === undefined) return;
+
+    const id = deviceId();
+    if (balanceFor(state.ratings, state.redemptions, id) < reward.cost) return;
+
+    const redemption: Redemption = {
+      id: makeId('redemption'),
+      deviceId: id,
+      rewardId: reward.id,
+      rewardLabel: reward.label,
+      cost: reward.cost,
+      code: redemptionCode(),
+      stationId: reward.stationId,
+      createdAt: eventNowIso(),
+    };
+
+    set({
+      redemptions: [redemption, ...state.redemptions],
+      lastRedemption: redemption,
+      revision: state.revision + 1,
+    });
+    emitWrite({ kind: 'redemption', redemption });
+  },
+  clearLastRedemption: () => set({ lastRedemption: null }),
 }));
 
 export function findStation(

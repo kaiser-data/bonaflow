@@ -1,4 +1,4 @@
-import { Activity, LayoutDashboard, TriangleAlert } from 'lucide-react-native';
+import { Activity, LayoutDashboard, MessageSquare, TriangleAlert } from 'lucide-react-native';
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,9 +11,9 @@ import { colors } from '@/lib/theme';
 const TAB_BAR_CONTENT_HEIGHT = 60;
 
 /**
- * Operations view: Overview, Alerts, Activity. Same shared store as the guest and
- * staff views, so a confirmed report reaches these screens without anyone
- * touching them.
+ * Operations view: Overview, Alerts, Activity, Feedback. Same shared store as the
+ * guest and staff views, so a confirmed report or a guest review reaches these
+ * screens without anyone touching them.
  */
 export default function OperationsTabLayout() {
   const insets = useSafeAreaInsets();
@@ -72,6 +72,13 @@ export default function OperationsTabLayout() {
         options={{
           title: 'Activity',
           tabBarIcon: ({ color, size }) => <Activity color={color} size={size ?? 24} />,
+        }}
+      />
+      <Tabs.Screen
+        name="feedback"
+        options={{
+          title: 'Feedback',
+          tabBarIcon: ({ color, size }) => <MessageSquare color={color} size={size ?? 24} />,
         }}
       />
     </Tabs>

@@ -1,4 +1,4 @@
-import { Bell, Sparkles, UtensilsCrossed } from 'lucide-react-native';
+import { Bell, Sparkles, Star, UtensilsCrossed } from 'lucide-react-native';
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -59,6 +59,13 @@ export default function GuestTabLayout() {
         options={{
           title: 'For You',
           tabBarIcon: ({ color, size }) => <Sparkles color={color} size={size ?? 24} />,
+        }}
+      />
+      <Tabs.Screen
+        name="rate"
+        options={{
+          title: 'Rate',
+          tabBarIcon: ({ color, size }) => <Star color={color} size={size ?? 24} />,
         }}
       />
       <Tabs.Screen

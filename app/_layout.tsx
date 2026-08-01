@@ -177,6 +177,8 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ title: 'BonaFlow', headerShown: false }} />
             <Stack.Screen name="staff" options={{ title: 'Staff', headerShown: false }} />
             <Stack.Screen name="staff-confirm" options={{ title: 'Confirm update' }} />
+            <Stack.Screen name="rate-confirm" options={{ title: 'Check your review' }} />
+            <Stack.Screen name="rewards" options={{ title: 'Your points' }} />
             <Stack.Screen
               name="staff-override"
               options={{

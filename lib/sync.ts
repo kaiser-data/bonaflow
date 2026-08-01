@@ -15,9 +15,17 @@ import {
   type FieldInference,
   type Incentive,
   type IssueType,
+  type LeftoverAmount,
+  type LeftoverReason,
+  type MealRating,
   type PendingWrite,
   type Priority,
   type QueueLevel,
+  type RatingInterpretation,
+  type RatingLanguage,
+  type RatingSentiment,
+  type RatingSource,
+  type Redemption,
   type ReplenishmentTask,
   type ReportAction,
   type ReportedFacts,
@@ -130,6 +138,34 @@ type EventRow = {
   incentive: unknown;
 };
 
+type RatingRow = {
+  id: string;
+  device_id: string;
+  station_id: string;
+  dish_id: string;
+  score: number | null;
+  leftover: string | null;
+  reasons: string[] | null;
+  comment: string | null;
+  language: string;
+  source: string;
+  audio: unknown;
+  interpretation: unknown;
+  points_awarded: number;
+  created_at: string;
+};
+
+type RedemptionRow = {
+  id: string;
+  device_id: string;
+  reward_id: string;
+  reward_label: string;
+  cost: number;
+  code: string;
+  station_id: string | null;
+  created_at: string;
+};
+
 /** Exactly what `bonaflow_state()` returns. */
 type StatePayload = {
   event: EventRow | null;
@@ -138,6 +174,8 @@ type StatePayload = {
   updates: UpdateRow[] | null;
   alerts: AlertRow[] | null;
   tasks: TaskRow[] | null;
+  ratings: RatingRow[] | null;
+  redemptions: RedemptionRow[] | null;
 };
 
 const DIET_TAGS: readonly DietTag[] = ['vegan', 'vegetarian', 'high_protein'];
@@ -178,6 +216,24 @@ const ISSUE_TYPES: readonly IssueType[] = [
   'resolved',
   'other',
 ];
+const LEFTOVERS: readonly LeftoverAmount[] = ['none', 'a_little', 'about_half', 'most_of_it'];
+const REASONS: readonly LeftoverReason[] = [
+  'portion_too_large',
+  'not_tasty',
+  'too_spicy',
+  'too_salty',
+  'bland',
+  'cold',
+  'texture',
+  'not_fresh',
+  'disliked_ingredient',
+  'no_time',
+  'wanted_something_else',
+  'other',
+];
+const RATING_SOURCES: readonly RatingSource[] = ['voice', 'text', 'taps'];
+const LANGUAGES: readonly RatingLanguage[] = ['en', 'de', 'other'];
+const SENTIMENTS: readonly RatingSentiment[] = ['positive', 'mixed', 'negative', 'unclear'];
 
 /**
  * Backend columns are plain text, so each value is matched against the set the
@@ -423,6 +479,89 @@ function toEvent(row: EventRow | null, fallback: EventInfo): EventInfo {
   };
 }
 
+function asLeftover(value: string | null): LeftoverAmount | null {
+  return match(LEFTOVERS, value);
+}
+
+function asReasons(value: string[] | null): readonly LeftoverReason[] {
+  return (value ?? [])
+    .map((entry) => match(REASONS, entry))
+    .filter((entry): entry is LeftoverReason => entry !== null);
+}
+
+/** How a review was read, as it was stored with the rating. */
+function asRatingInterpretation(value: unknown): RatingInterpretation | null {
+  const record = asRecord(value);
+  if (record === null) return null;
+
+  const reported = asRecord(record.reported);
+  const score = reported === null ? null : reported.score;
+
+  return {
+    mode: record.mode === 'model' ? 'model' : 'keyword',
+    summary: asText(record.summary),
+    confidence:
+      typeof record.confidence === 'number' && Number.isFinite(record.confidence)
+        ? Math.min(1, Math.max(0, record.confidence))
+        : 0,
+    reported: {
+      score: typeof score === 'number' && Number.isInteger(score) ? score : null,
+      leftover:
+        reported === null
+          ? null
+          : asLeftover(typeof reported.leftover === 'string' ? reported.leftover : null),
+      reasons:
+        reported === null || !Array.isArray(reported.reasons)
+          ? []
+          : asReasons(
+              reported.reasons.filter((entry): entry is string => typeof entry === 'string'),
+            ),
+    },
+    suggestedReasons: Array.isArray(record.suggestedReasons)
+      ? asReasons(
+          record.suggestedReasons.filter((entry): entry is string => typeof entry === 'string'),
+        )
+      : [],
+    inferences: asInferences(record.inferences),
+    sentiment: match(SENTIMENTS, asText(record.sentiment)) ?? 'unclear',
+    kitchenNote: asText(record.kitchenNote),
+    corrections: asStrings(record.corrections),
+    reason: typeof record.reason === 'string' ? record.reason : null,
+  };
+}
+
+function toRating(row: RatingRow): MealRating {
+  return {
+    id: row.id,
+    deviceId: row.device_id,
+    stationId: row.station_id,
+    dishId: row.dish_id,
+    score: row.score,
+    leftover: asLeftover(row.leftover),
+    reasons: asReasons(row.reasons),
+    comment: row.comment ?? '',
+    language: match(LANGUAGES, row.language) ?? 'other',
+    source: match(RATING_SOURCES, row.source) ?? 'taps',
+    audio: asAudio(row.audio),
+    interpretation: asRatingInterpretation(row.interpretation),
+    pointsAwarded: row.points_awarded,
+    createdAt: row.created_at,
+  };
+}
+
+function toRedemption(row: RedemptionRow): Redemption {
+  return {
+    id: row.id,
+    deviceId: row.device_id,
+    rewardId: row.reward_id,
+    rewardLabel: row.reward_label,
+    cost: row.cost,
+    code: row.code,
+    stationId: row.station_id,
+    createdAt: row.created_at,
+  };
+}
+
 /** Single narrowing point for the backend answer. */
 function isStatePayload(value: unknown): value is StatePayload {
   const record = asRecord(value);
@@ -444,6 +583,8 @@ function toSnapshot(payload: unknown): SharedSnapshot | null {
     updates: (payload.updates ?? []).map(toUpdate),
     alerts: (payload.alerts ?? []).map(toAlert),
     tasks: (payload.tasks ?? []).map(toTask),
+    ratings: (payload.ratings ?? []).map(toRating),
+    redemptions: (payload.redemptions ?? []).map(toRedemption),
   };
 }
 
@@ -503,6 +644,39 @@ function reportPayload(write: ReportWrite): Record<string, unknown> {
   };
 }
 
+/** One rating, as `bonaflow_submit_rating` expects it. Points are set server-side. */
+function ratingPayload(rating: MealRating): Record<string, unknown> {
+  return {
+    id: rating.id,
+    device_id: rating.deviceId,
+    station_id: rating.stationId,
+    dish_id: rating.dishId,
+    score: rating.score,
+    leftover: rating.leftover,
+    reasons: rating.reasons,
+    comment: rating.comment,
+    language: rating.language,
+    source: rating.source,
+    audio: rating.audio,
+    interpretation: rating.interpretation,
+    created_at: rating.createdAt,
+  };
+}
+
+/** One redemption. The backend re-checks the balance before it inserts anything. */
+function redemptionPayload(redemption: Redemption): Record<string, unknown> {
+  return {
+    id: redemption.id,
+    device_id: redemption.deviceId,
+    reward_id: redemption.rewardId,
+    reward_label: redemption.rewardLabel,
+    cost: redemption.cost,
+    code: redemption.code,
+    station_id: redemption.stationId,
+    created_at: redemption.createdAt,
+  };
+}
+
 /** 'retry' means the backend was unreachable; 'drop' means it refused the call. */
 type PushOutcome = 'ok' | 'retry' | 'drop';
 
@@ -539,6 +713,14 @@ async function push(write: PendingWrite): Promise<PushResult> {
     });
   }
 
+  if (write.kind === 'rating') {
+    return call('bonaflow_submit_rating', { p_rating: ratingPayload(write.rating) });
+  }
+
+  if (write.kind === 'redemption') {
+    return call('bonaflow_redeem_reward', { p_redemption: redemptionPayload(write.redemption) });
+  }
+
   return call('bonaflow_set_incentive', { p_incentive: write.incentive });
 }
 
@@ -565,6 +747,8 @@ function newestTimestamp(snapshot: SharedSnapshot): string {
     ...snapshot.updates.map((update) => update.createdAt),
     ...snapshot.alerts.map((alert) => alert.createdAt),
     ...snapshot.tasks.map((task) => task.createdAt),
+    ...snapshot.ratings.map((rating) => rating.createdAt),
+    ...snapshot.redemptions.map((redemption) => redemption.createdAt),
   ];
 
   return candidates.reduce((newest, current) => (current > newest ? current : newest), '');
