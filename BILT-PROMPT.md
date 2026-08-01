@@ -322,6 +322,52 @@ still plays.**
 
 ---
 
+## PHASE 2.5 — shared state across devices ⚠ PASTE THIS BEFORE PHASE 3
+
+**Do this the moment the Bilt-managed backend is provisioned.** An in-memory store is per-device:
+the staff phone and the guest phone each hold their own copy and never see each other. Polling a
+local store re-reads your own memory — it is not sync, and the two-device demo cannot work
+without this.
+
+```
+The app currently keeps all state in an in-memory Zustand store, which is per-device.
+Move the shared state to the backend so two separate phones see the same data.
+
+Persist these to the backend: stations, dishes, staff_updates, alerts,
+replenishment_tasks, and the event config including the incentive.
+
+Keep the existing store as the local cache and the single read path for the UI —
+do not rewrite the screens. Change only where the data comes from and goes to:
+- on mount and every 3 seconds, fetch current state and hydrate the store
+- every write (quick action, confirmed report, task completion, incentive toggle,
+  manual override) posts to the backend first, then refreshes from the response
+- keep writes as whole-state or per-entity updates, whichever is simpler; there is
+  no concurrency to worry about with three devices
+
+Keep the 3-second poll. Do not add websockets or realtime subscriptions — polling is
+the reliable choice on conference wifi and it reads as live to an audience.
+
+Offline behaviour, required for the demo:
+- if a fetch fails, keep showing the last known state with its timestamps. Never
+  blank the screen, never show a spinner that outlives one poll, never show an error
+  screen to a guest.
+- the hidden manual override must keep working with the network fully off, writing
+  to the local store only. It is the stage safety net.
+
+Do not add auth, user accounts, or row-level security. There are no users.
+
+Acceptance test — this is the one that matters:
+open the Guest view on one phone and the Staff view on a DIFFERENT phone. Tap "Item
+sold out" for Vegan Thai Curry on the staff phone. Within about three seconds the
+guest phone must change on its own: Station B goes red, and the vegan
+recommendation moves to Station C. Nobody touches the guest phone.
+```
+
+**Then run the acceptance test on two real phones before you paste Phase 3.** If it passes, you
+have cleared the 14:15 gate and everything after it is upside.
+
+---
+
 ## PHASE 3 — Operations view, OpenAI extraction, ElevenLabs
 
 ```
