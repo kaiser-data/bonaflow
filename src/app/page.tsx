@@ -46,9 +46,13 @@ export default function HomePage() {
       <Link className="feedback-link" href="/feedback">
         Share meal feedback
       </Link>
-      <section className="qr-placeholder" aria-label="Guest QR coming after deployment">
-        <span>GUEST QR</span>
-        <p>Production QR appears here after the first deployment.</p>
+      <section className="projector-qr" aria-label="Scan to open Guest View">
+        <span className="eyebrow">SCAN TO JOIN</span>
+        {/* Generated for https://bonaflow.vercel.app/guest and stored locally. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/guest-qr.png" alt="QR code for the BonaFlow Guest View" />
+        <h2>Scan to open Guest View</h2>
+        <a href="https://bonaflow.vercel.app/guest">bonaflow.vercel.app/guest</a>
       </section>
       <Disclaimer />
     </main>

@@ -551,6 +551,38 @@ a {
   letter-spacing: 0.15em;
 }
 
+.projector-qr {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 24px;
+  border: 1px solid #dfe3dc;
+  border-radius: 24px;
+  background: #fff;
+  text-align: center;
+}
+
+.projector-qr img {
+  width: min(100%, 70vmin, 520px);
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.projector-qr h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.55rem;
+  font-weight: 500;
+}
+
+.projector-qr a {
+  color: #52605c;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 @media (min-width: 680px) {
   .app-shell {
     padding-right: 24px;
