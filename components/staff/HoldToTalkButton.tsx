@@ -160,7 +160,9 @@ export function HoldToTalkButton({ onRecorded, onUnavailable }: HoldToTalkButton
               {formatDuration(recorderState.durationMillis)}
             </MonoText>
           ) : (
-            <MonoText className="text-muted text-xs">voice note · no transcription</MonoText>
+            <MonoText className="text-muted text-xs">
+              voice note · spoken words become text
+            </MonoText>
           )}
         </View>
       </Touchable>

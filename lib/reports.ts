@@ -292,7 +292,11 @@ export function interpretReport(input: {
   };
 }
 
-/** Draft for a voice note. Nothing is transcribed: no model, no network. */
+/**
+ * Draft for a voice note that could not be transcribed — the voice service was
+ * unreachable or heard nothing. The recording is kept and the fields are filled
+ * in by hand on the confirmation screen.
+ */
 export function buildVoiceDraft(input: {
   stationId: string;
   dishId: string | null;

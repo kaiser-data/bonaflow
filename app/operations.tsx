@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 
+import { AnnounceButton } from '@/components/ops/AnnounceButton';
 import { StatusDot } from '@/components/station/StatusDot';
 import { Card } from '@/components/ui/Card';
 import { MonoText } from '@/components/ui/MonoText';
@@ -9,6 +10,7 @@ import { useLivePoll } from '@/hooks/useLivePoll';
 import { eventNow, formatAge, toLocalIso } from '@/lib/clock';
 import { findDish, findStation, useBonaFlowStore } from '@/lib/store';
 import {
+  announcementText,
   formatClock,
   incentiveAttribution,
   priorityLabel,
@@ -79,6 +81,7 @@ export default function OperationsScreen() {
                   {alert.recommendedAction}
                   {dish === undefined ? '' : ` · ${dish.name}`}
                 </MonoText>
+                <AnnounceButton text={announcementText(alert)} />
               </Card>
             );
           })

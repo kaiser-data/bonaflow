@@ -10,6 +10,7 @@ import type {
   RecommendationRef,
   ReportAction,
   Station,
+  StationAlert,
   StationStatus,
 } from '@/lib/store';
 import { isStillValid } from '@/lib/clock';
@@ -302,6 +303,19 @@ export function describeUpdate(
       : `${actionLabel(report.action)} — priority ${priorityLabel(report.priority)}`;
 
   return { alertMessage: `${parts.join(', ')}.`, recommendedAction };
+}
+
+/**
+ * Spoken form of an alert, for the room announcement. Assembled from the alert
+ * that is already on screen, so what is heard is exactly what is written.
+ */
+export function announcementText(
+  alert: Pick<StationAlert, 'message' | 'recommendedAction'>,
+): string {
+  const message = alert.message.trim();
+  const action = alert.recommendedAction.trim();
+  if (action.length === 0 || action === 'No action needed') return `Attention. ${message}`;
+  return `Attention. ${message} Recommended action: ${action.replace(' — ', ', ')}.`;
 }
 
 /** Newest first. */

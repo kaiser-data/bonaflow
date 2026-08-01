@@ -23,6 +23,7 @@ import {
 import { findStation, useBonaFlowStore, type AudioAttachment } from '@/lib/store';
 import { formatClock } from '@/lib/stations';
 import { colors } from '@/lib/theme';
+import { transcribeVoiceNote } from '@/lib/voice';
 
 const MICROPHONE_DENIED =
   'Microphone access is off, so this update is typed instead. The text below is ready to send.';
@@ -46,6 +47,8 @@ export default function StaffReportScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<QuickAction | null>(null);
+  const [transcribing, setTranscribing] = useState(false);
+  const [voiceHint, setVoiceHint] = useState<string | null>(null);
 
   const station = findStation(stations, selectedStationId) ?? stations[0];
   const lastAlert = alerts.length > 0 ? alerts[0] : null;
@@ -73,7 +76,33 @@ export default function StaffReportScreen() {
     router.push('/staff-confirm');
   };
 
-  const reviewVoiceNote = (audio: AudioAttachment) => {
+  const reviewVoiceNote = async (audio: AudioAttachment) => {
+    setVoiceHint(null);
+    setTranscribing(true);
+    // The recording goes to the server-side voice service; the API key is never
+    // in this app. A transcript only supplies the words — the fields are still
+    // worked out by the deterministic interpreter and confirmed by hand.
+    const transcript = await transcribeVoiceNote(audio);
+    setTranscribing(false);
+
+    if (transcript.ok) {
+      startDraft(
+        interpretReport({
+          text: transcript.text,
+          stations,
+          stationId: station.id,
+          source: 'voice',
+          photoUri,
+          audio,
+        }),
+      );
+      router.push('/staff-confirm');
+      return;
+    }
+
+    // No transcript: the note is kept and the fields are filled in on the
+    // confirmation screen, so the demo survives a dead network.
+    setVoiceHint(transcript.reason);
     startDraft({ ...buildVoiceDraft({ stationId: station.id, dishId: null, audio }), photoUri });
     router.push('/staff-confirm');
   };
@@ -151,9 +180,17 @@ export default function StaffReportScreen() {
         </Touchable>
 
         <HoldToTalkButton
-          onRecorded={reviewVoiceNote}
+          onRecorded={(audio) => void reviewVoiceNote(audio)}
           onUnavailable={() => fallBackToText(MICROPHONE_DENIED)}
         />
+
+        {transcribing ? (
+          <MonoText className="text-muted text-xs">turning that note into text…</MonoText>
+        ) : null}
+
+        {voiceHint === null ? null : (
+          <MonoText className="text-muted text-xs">{voiceHint}</MonoText>
+        )}
       </View>
 
       <View className="gap-3">
