@@ -558,6 +558,248 @@ a {
   }
 }
 
+.staff-page {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.station-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.station-button {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 13px;
+  border: 1px solid #dfe3dc;
+  border-radius: 15px;
+  background: #fff;
+  color: #334542;
+  text-align: left;
+}
+
+.station-button.is-active {
+  border-color: #19312f;
+  box-shadow: inset 0 0 0 1px #19312f;
+}
+
+.station-button .status-dot {
+  width: 12px;
+  height: 12px;
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.quick-grid button {
+  display: flex;
+  min-height: 66px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px;
+  border: 1px solid #dfe3dc;
+  border-radius: 15px;
+  background: #fff;
+  color: #263d39;
+  text-align: left;
+}
+
+.dish-picker-panel {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #edf1ec;
+}
+
+.dish-picker-panel button {
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid #d3dad4;
+  border-radius: 12px;
+  background: #fff;
+  color: #263d39;
+  text-align: left;
+}
+
+.dish-picker-panel .text-button {
+  border: 0;
+  background: transparent;
+  text-align: center;
+}
+
+.report-card,
+.confirmation-card {
+  padding: 20px;
+  border: 1px solid #dfe3dc;
+  border-radius: 22px;
+  background: #fff;
+}
+
+.report-card h2,
+.confirmation-card h2 {
+  margin: 5px 0 18px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.65rem;
+  font-weight: 500;
+}
+
+.voice-control {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.voice-control p {
+  margin: 0;
+  color: #69746f;
+  font-size: 0.78rem;
+}
+
+.hold-button {
+  min-height: 70px;
+  border: 0;
+  border-radius: 18px;
+  background: #19312f;
+  color: #fff;
+  font-weight: 700;
+  touch-action: none;
+}
+
+.hold-button span {
+  margin-right: 8px;
+}
+
+.hold-button.is-recording {
+  background: #b4432b;
+}
+
+.text-report-label,
+.confirmation-grid label,
+.evidence-row {
+  display: grid;
+  gap: 6px;
+  color: #52605c;
+  font-size: 0.77rem;
+  font-weight: 700;
+}
+
+textarea,
+input,
+select {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 12px;
+  border: 1px solid #cfd6d1;
+  border-radius: 11px;
+  background: #fff;
+  color: #19312f;
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.primary-button,
+.secondary-button {
+  min-height: 50px;
+  padding: 0 20px;
+  border-radius: 14px;
+  font-weight: 700;
+}
+
+.primary-button {
+  border: 0;
+  background: #19312f;
+  color: #fff;
+}
+
+.primary-button:disabled,
+.quick-grid button:disabled {
+  opacity: 0.45;
+}
+
+.secondary-button {
+  border: 1px solid #cfd6d1;
+  background: #fff;
+  color: #19312f;
+}
+
+.full-button {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.offline-label,
+.toast-message,
+.form-error {
+  padding: 10px 12px;
+  border-radius: 11px;
+  background: #eef1ec;
+  color: #52605c;
+  font-size: 0.78rem;
+}
+
+.confirmation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field-wide {
+  grid-column: 1 / -1;
+}
+
+.evidence-row {
+  margin-top: 14px;
+  padding: 13px;
+  border-radius: 13px;
+}
+
+.reported-row {
+  background: #eef3ed;
+}
+
+.inference-row {
+  background: #f0edf4;
+}
+
+.evidence-row textarea {
+  min-height: 70px;
+}
+
+.confirmation-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.form-error {
+  background: #f7e9e5;
+  color: #8d3022;
+}
+
+.toast-message {
+  position: sticky;
+  bottom: 86px;
+  z-index: 10;
+  background: #19312f;
+  color: #fff;
+  text-align: center;
+}
+
 button,
 a,
 input,
