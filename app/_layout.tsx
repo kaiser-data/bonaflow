@@ -11,6 +11,9 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
+// Display face for the Bella&Bona lockup: heavy condensed uppercase, the house
+// design's typographic voice. Used by components/brand/BrandLockup.tsx only.
+import { Anton_400Regular } from '@expo-google-fonts/anton';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 import { useEffect } from 'react';
@@ -61,6 +64,7 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    Anton_400Regular,
   });
 
   // Report uncaught JS errors and unhandled promise rejections to parent (Bilt preview iframe)

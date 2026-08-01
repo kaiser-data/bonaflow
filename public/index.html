@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Anton&display=swap"
     />
 
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
@@ -75,6 +75,12 @@
           'Helvetica Neue', Arial, sans-serif;
         --app-font-mono:
           ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+        /* Brand lockup only. Second entry is the copy expo-font registers, so a
+           blocked CDN still gets Anton; then condensed heavies that ship with the
+           OS, because a normal-width fallback would not read as the mark. */
+        --app-font-display:
+          'Anton', 'Anton_400Regular', 'Haettenschweiler', 'Arial Narrow', Impact,
+          var(--app-font-sans);
       }
 
       html,
@@ -89,12 +95,16 @@
          inheriting from <body> is not enough — the app face needs a selector that
          outranks the generated one. Monospaced text opts out through data-mono,
          which components/ui/MonoText.tsx sets on web. */
-      #root [class]:not([data-mono]) {
+      #root [class]:not([data-mono]):not([data-display]) {
         font-family: var(--app-font-sans);
       }
 
       #root [data-mono] {
         font-family: var(--app-font-mono);
+      }
+
+      #root [data-display] {
+        font-family: var(--app-font-display);
       }
     </style>
   </head>
