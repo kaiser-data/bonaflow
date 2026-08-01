@@ -538,6 +538,28 @@ will do it faster. No code change.
 
 ---
 
+## CORRECTION A2 — event name sweep (if the old name is still showing)
+
+```
+The event name is still wrong in places. Replace EVERY occurrence of
+"Future of Work Summit Berlin" with "8x Bella & Bona Mobile Hack".
+
+Check all of these, not just the event record:
+  - the event object in the seed data and on the backend
+  - the Operations Overview header
+  - the Guest Stations header
+  - the mode selector / start screen
+  - any window or document title, app title, or share text
+  - any announcement or alert string that names the event
+  - any comment or placeholder left over in the code
+
+Search the whole project for "Future of Work" and for "Summit" and make sure
+neither string appears anywhere afterwards. The venue stays "Delta Campus,
+Berlin" and lunch stays 12:30-14:00.
+```
+
+---
+
 ## CORRECTION C — reset to seed ⚠ paste BEFORE letting anyone else use the app
 
 **Without this, participant testing destroys your demo.** Twenty people submitting updates will
