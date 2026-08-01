@@ -491,9 +491,12 @@ is OpenAI-compatible, so keep the OpenAI SDK and change only the client config.
 
   base_url: "https://api.tokenfactory.nebius.com/v1/"
   api key:  process.env.NEBIUS_API_KEY   (server-side only, never in the app)
-  model:    "Qwen/Qwen3-235B-A22B"
+  model:    process.env.LM_MODEL         (= "Qwen/Qwen3-235B-A22B-Instruct-2507")
 
-Server-side only. The key must never reach the client.
+Read the model from LM_MODEL rather than hardcoding it, so it can be swapped
+without a code change if it turns out to be slow.
+
+Server-side only. Neither the key nor the endpoint call may run on the client.
 
 TEXT ONLY. Do not send the tray photo to the model. Nebius vision support is not
 confirmed and the demo does not need it: the staff member's sentence carries the
@@ -521,9 +524,17 @@ ElevenLabs stays exactly as it is for transcription and for the spoken
 announcements. Nothing else changes.
 ```
 
-**If Qwen3-235B is slow**, swap the model string for a smaller instruct model on the same
-endpoint — extraction from one sentence is an easy task and a smaller model will do it faster.
-Nothing else in the code changes.
+**Env vars to set server-side:**
+
+```
+NEBIUS_API_KEY=<your key>
+LM_MODEL=Qwen/Qwen3-235B-A22B-Instruct-2507
+```
+
+`Instruct-2507` is the non-thinking variant — the right choice here, since reasoning models wrap
+JSON in thinking tokens and cost latency you don't have. **If it's slow, change `LM_MODEL` only**;
+extraction from one sentence is an easy task and a smaller instruct model on the same endpoint
+will do it faster. No code change.
 
 ---
 
