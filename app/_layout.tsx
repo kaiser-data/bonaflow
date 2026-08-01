@@ -159,7 +159,10 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: colors.background },
             }}
           >
+            <Stack.Screen name="index" options={{ title: 'BonaFlow', headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ title: 'BonaFlow', headerShown: false }} />
+            <Stack.Screen name="staff" options={{ title: 'Staff' }} />
+            <Stack.Screen name="operations" options={{ title: 'Operations' }} />
           </Stack>
           <InstallPrompt />
         </HeroUINativeProvider>

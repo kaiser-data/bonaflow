@@ -64,22 +64,24 @@
       --default: oklch(0.945 0.012 78);
       --default-foreground: var(--foreground);
 
-      --accent: oklch(0.575 0.152 44);
-      --accent-foreground: oklch(0.99 0.006 84);
+      /* Deep green #0F766E — brand primary. No terracotta / rust anywhere. */
+      --accent: oklch(0.505 0.088 186);
+      --accent-foreground: oklch(0.985 0.008 186);
 
       --field-background: oklch(0.995 0.005 84);
       --field-foreground: var(--foreground);
       --field-placeholder: var(--muted);
       --field-border: oklch(0.898 0.017 76);
 
-      --success: oklch(0.595 0.118 152);
-      --success-foreground: oklch(0.99 0.006 152);
+      /* Reserved status colours. Used only for station status. */
+      --success: oklch(0.505 0.088 186); /* #0F766E available */
+      --success-foreground: oklch(0.985 0.008 186);
 
-      --warning: oklch(0.755 0.135 74);
-      --warning-foreground: oklch(0.28 0.05 74);
+      --warning: oklch(0.727 0.135 51); /* #F08A4B running low or busy */
+      --warning-foreground: oklch(0.28 0.05 51);
 
-      --danger: oklch(0.565 0.185 26);
-      --danger-foreground: oklch(0.99 0.006 26);
+      --danger: oklch(0.503 0.148 33); /* #B4432B sold out, closed, urgent */
+      --danger-foreground: oklch(0.985 0.008 33);
 
       --segment: oklch(0.995 0.005 84);
       --segment-foreground: var(--foreground);
@@ -109,22 +111,24 @@
       --default: oklch(0.945 0.012 78);
       --default-foreground: var(--foreground);
 
-      --accent: oklch(0.575 0.152 44);
-      --accent-foreground: oklch(0.99 0.006 84);
+      /* Deep green #0F766E — brand primary. No terracotta / rust anywhere. */
+      --accent: oklch(0.505 0.088 186);
+      --accent-foreground: oklch(0.985 0.008 186);
 
       --field-background: oklch(0.995 0.005 84);
       --field-foreground: var(--foreground);
       --field-placeholder: var(--muted);
       --field-border: oklch(0.898 0.017 76);
 
-      --success: oklch(0.595 0.118 152);
-      --success-foreground: oklch(0.99 0.006 152);
+      /* Reserved status colours. Used only for station status. */
+      --success: oklch(0.505 0.088 186); /* #0F766E available */
+      --success-foreground: oklch(0.985 0.008 186);
 
-      --warning: oklch(0.755 0.135 74);
-      --warning-foreground: oklch(0.28 0.05 74);
+      --warning: oklch(0.727 0.135 51); /* #F08A4B running low or busy */
+      --warning-foreground: oklch(0.28 0.05 51);
 
-      --danger: oklch(0.565 0.185 26);
-      --danger-foreground: oklch(0.99 0.006 26);
+      --danger: oklch(0.503 0.148 33); /* #B4432B sold out, closed, urgent */
+      --danger-foreground: oklch(0.985 0.008 33);
 
       --segment: oklch(0.995 0.005 84);
       --segment-foreground: var(--foreground);
