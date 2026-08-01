@@ -47,9 +47,9 @@ export function interpretFeedbackKeywords(
     throw new Error(`Unknown feedback dishId: ${selectedDishId}`);
   }
   const lower = text.toLowerCase();
-  const leftoverAmount = /most left|almost all|barely ate|hardly ate/.test(lower)
+  const leftoverAmount = /most(?: of (?:it|the [\w ]+))? (?:was )?left|almost all|barely ate|hardly ate/.test(lower)
     ? "most"
-    : /some left|half left|didn't finish|did not finish/.test(lower)
+    : /some(?: of (?:it|the [\w ]+))? (?:was )?left|half left|didn't finish|did not finish/.test(lower)
       ? "some"
       : /none left|finished it|ate it all|empty bowl/.test(lower)
         ? "none"
