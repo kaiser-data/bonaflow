@@ -22,6 +22,7 @@
 - Use the real committed images locally; never fetch dish images at runtime.
 - Quick actions never call a model; interpreted voice/text never writes before confirmation.
 - The model proposes alternatives; deterministic code verifies eligibility and decides.
+- Feedback contains no rating, score, average, reward, or voucher and can only append to `state.feedback`.
 - Commit a production `/guest` QR PNG and render it large on `/` after the first deployment URL exists.
 
 ---
@@ -222,7 +223,7 @@ Expected: FAIL because the domain modules do not exist.
 
 - [ ] **Step 3: Implement the typed seed and minimal pure functions**
 
-`types.ts` defines the exact enums from the design and prompt, including `DietFilter = "all" | "vegan" | "vegetarian" | "gluten_free" | "halal"`, station dish placements, alerts, tasks, incentives, and the extraction schema. `seed.ts` transcribes the four stations and five dishes from `PWA-CODEX-PROMPT.md` and exports a deeply immutable `SEED_STATE` value.
+`types.ts` defines the exact enums from the design and prompt, including `DietFilter = "all" | "vegan" | "vegetarian" | "gluten_free" | "halal"`, station dish placements, alerts, tasks, incentives, the operational extraction schema, `FeedbackExtraction`, and `FeedbackRecord`. `BonaFlowState.feedback` is an initially empty array. `seed.ts` transcribes the four stations and five dishes from `PWA-CODEX-PROMPT.md` and exports a deeply immutable `SEED_STATE` value.
 
 `validateExtraction` checks all enums, confidence range, exact station/dish membership, and that the selected dish is placed at the selected station. `applyExtraction` starts from `structuredClone(state)`, performs the mandated update order, creates deterministic ids from the supplied timestamp plus collection length, strips any incentive-like model content, and recomputes `recommendations`. `resetState` returns `structuredClone(SEED_STATE)`. `recommendStation` filters to available matching placements, excludes `excludeStationId`, and sorts with `low < medium < high < unknown`.
 
@@ -334,7 +335,7 @@ Render both visible disclaimers from the prompt at the bottom. Use neutral grey 
 
 - [ ] **Step 3: Implement the mode selector shell**
 
-Render three large links for Guest, Staff, Operations and reserve a projector section for the QR that will be populated in Task 8.
+Render three large links for Guest, Staff, Operations, a secondary `Share meal feedback` link, and reserve a projector section for the QR that will be populated in Task 9.
 
 - [ ] **Step 4: Verify guest locally**
 
@@ -429,7 +430,7 @@ Accept discriminated bodies `{ action: "complete_task", taskId }` and `{ action:
 
 - [ ] **Step 2: Build the live operations board**
 
-Render all stations with statuses, queues, dishes, low stock, and timestamps; active alerts newest first; open tasks with completion buttons; update count; incentive toggle; and a reset button behind a native confirm dialog calling `/api/state/reset`.
+Render all stations with statuses, queues, dishes, low stock, and timestamps; active alerts newest first; open tasks with completion buttons; update count; incentive toggle; and a reset button behind a native confirm dialog calling `/api/state/reset`. In a visually separate `Next event` panel, derive leftover distribution and reason counts from `state.feedback`; render no average, score, or rating.
 
 - [ ] **Step 3: Verify, redeploy, and commit**
 
@@ -452,6 +453,8 @@ git commit -m "feat: add live operations board"
 - Create: `src/app/api/announcements/route.ts`
 - Create: `public/audio/announcement-en.mp3`
 - Create: `public/audio/announcement-de.mp3`
+- Modify: `src/components/voice-recorder.tsx`
+- Modify: `src/app/staff/page.tsx`
 - Modify: `src/app/guest/page.tsx`
 
 **Interfaces:**
@@ -468,6 +471,8 @@ Accept `{ language: "en" | "de", text }`, enforce fewer than 20 words, and call 
 
 Add `/api/transcribe` as a multipart route that accepts the recorder's original `Blob` and filename without rewriting or hardcoding its MIME type. Send it to ElevenLabs speech-to-text server-side and return `{ transcript }`. On an absent key, unsupported response, or transcription failure, return status 503 so the staff client immediately reveals and pre-fills the prepared text fallback rather than dead-ending.
 
+Update the shared recorder to post its native `Blob` to `/api/transcribe` and return the transcript to Staff. Staff then sends that text through the existing confirmation flow. Preserve the exact prepared sentence as the immediate fallback when transcription is unavailable.
+
 - [ ] **Step 3: Generate and commit the two demo clips when the key is available**
 
 Generate the exact English and German prompt announcements, save MP3 bytes to the two declared paths, and verify both play locally. If the key is unavailable by feature freeze, commit no fake audio bytes and keep the visible text fallback.
@@ -478,13 +483,98 @@ Exercise a valid prepared sentence, one iOS-compatible audio upload, one Android
 
 ```bash
 vercel --prod
-git add src/server/nebius.ts src/app/api/staff-update/route.ts src/app/api/transcribe src/app/api/announcements src/app/guest/page.tsx public/audio
+git add src/server/nebius.ts src/app/api/staff-update/route.ts src/app/api/transcribe src/app/api/announcements src/components/voice-recorder.tsx src/app/staff/page.tsx src/app/guest/page.tsx public/audio
 git commit -m "feat: add resilient AI interpretation and announcements"
 ```
 
 ---
 
-### Task 8: Installable PWA, production QR, and release verification
+### Task 8: Isolated voice-first leftover feedback
+
+**Files:**
+- Create: `src/domain/feedback.ts`
+- Create: `src/server/nebius-feedback.ts`
+- Create: `src/app/api/feedback/interpret/route.ts`
+- Create: `src/app/api/feedback/route.ts`
+- Create: `src/app/feedback/page.tsx`
+- Modify: `src/app/page.tsx`
+
+**Interfaces:**
+- Consumes: `BonaFlowState.feedback`, exact dish ids/names, `/api/transcribe`, `StateRepository`, and Nebius credentials.
+- Produces: `interpretFeedbackKeywords(text, selectedDishId): FeedbackExtraction`, `formatFeedbackSummary(extraction, state): string`, `POST /api/feedback/interpret`, append-only `POST /api/feedback`, and `/feedback`.
+
+- [ ] **Step 1: Implement the isolated feedback domain**
+
+Define the exact closed values:
+
+```ts
+type LeftoverAmount = "none" | "some" | "most" | "unknown";
+type FeedbackReason =
+  | "portion_too_large"
+  | "not_tasty"
+  | "dietary_mismatch"
+  | "other"
+  | "unknown";
+
+type FeedbackExtraction = {
+  dishId: DishId;
+  leftoverAmount: LeftoverAmount;
+  reason: FeedbackReason;
+  reportedFacts: string[];
+  aiInferences: string[];
+  confidence: number;
+};
+```
+
+The keyword interpreter recognizes explicit phrases such as `most left`, `some left`, `finished it`, `portion too large`, `too much`, `not tasty`, and `wrong for my diet`. It never invents a dish: `selectedDishId` must be in the seed's closed list. `formatFeedbackSummary` returns sentences in the pattern `Most of the Vegan Chickpeas Quinoa Salad left, portion too large` with human-readable enum labels.
+
+- [ ] **Step 2: Implement strict Nebius feedback interpretation**
+
+`nebius-feedback.ts` is separate from staff extraction. It sends the transcript, selected dish, and exact closed dish list to Nebius with an eight-second timeout and strict JSON schema containing only `dishId`, `leftoverAmount`, `reason`, `reportedFacts`, `aiInferences`, and `confidence`. Validate the closed dish id, enums, and confidence server-side. On missing credentials, timeout, invalid JSON, invented ids, or API error, return `interpretFeedbackKeywords` with `interpretationMode: "offline"`.
+
+`POST /api/feedback/interpret` accepts `{ selectedDishId, text }`, invokes the strict interpreter, and returns `{ extraction, summary, interpretationMode }`. It never persists state.
+
+- [ ] **Step 3: Implement the append-only feedback endpoint**
+
+`POST /api/feedback` accepts `{ extraction, transcript }`, validates the extraction again, loads current state, and creates a deep clone. It assigns only:
+
+```ts
+next.feedback = [
+  ...current.feedback,
+  {
+    id: `feedback-${crypto.randomUUID()}`,
+    ...extraction,
+    transcript,
+    createdAt: new Date().toISOString()
+  }
+];
+```
+
+Before persistence, assert that every top-level field other than `feedback` remains deeply equal to the current state. Return 400 for validation errors and 503 for repository errors. The endpoint does not import or call operational mutation, recommendation, alert, task, counter, or incentive functions.
+
+- [ ] **Step 4: Build the voice-first feedback page**
+
+Render dish selection followed by a large hold-to-talk control. Reuse the native-format recorder and `/api/transcribe`; on transcription failure reveal the optional text field without losing the selected dish. Text is visible at all times as `Prefer to type?`.
+
+After interpretation, show only the plain summary sentence, an `offline interpretation` label when applicable, `Confirm`, and `Not right, let me retype`. Do not render field editors. Confirm posts to `/api/feedback`, then shows `Thank you — your feedback will help plan the next event.` Retype writes nothing and focuses the populated text field. Do not show or change an incentive, reward, voucher, points, rating, score, or average.
+
+- [ ] **Step 5: Verify isolation manually**
+
+Capture `GET /api/state` before submission. Exercise native voice, optional text, forced offline interpretation, and the retype path. Confirm one record, fetch state again, and compare every top-level property except `feedback` for deep equality. Verify Operations shows updated leftover/reason counts while Guest stations, Staff flow, alerts, tasks, recommendations, counters, and incentive remain unchanged.
+
+- [ ] **Step 6: Redeploy and commit**
+
+Run `npm test && npm run typecheck && npm run build`, then:
+
+```bash
+vercel --prod
+git add src/domain/feedback.ts src/server/nebius-feedback.ts src/app/api/feedback src/app/feedback src/app/page.tsx
+git commit -m "feat: add isolated voice leftover feedback"
+```
+
+---
+
+### Task 9: Installable PWA, production QR, and release verification
 
 **Files:**
 - Create: `src/app/manifest.ts`
@@ -503,7 +593,7 @@ git commit -m "feat: add resilient AI interpretation and announcements"
 
 - [ ] **Step 1: Add manifest, icons, and minimal service worker**
 
-Manifest fields are `name: "BonaFlow"`, `short_name: "BonaFlow"`, `start_url: "/guest"`, `display: "standalone"`, `background_color: "#FBF9F4"`, and `theme_color: "#0F766E"`, with 192 and 512 PNG icons. The service worker precaches `/`, `/guest`, manifest/icons, and all five dish images, serves cached assets on fetch failure, and does not cache API responses.
+Manifest fields are `name: "BonaFlow"`, `short_name: "BonaFlow"`, `start_url: "/guest"`, `display: "standalone"`, `background_color: "#FBF9F4"`, and `theme_color: "#0F766E"`, with 192 and 512 PNG icons. The service worker precaches `/`, `/guest`, `/feedback`, manifest/icons, and all five dish images, serves cached assets on fetch failure, and does not cache API responses.
 
 - [ ] **Step 2: Generate and render the production QR**
 
