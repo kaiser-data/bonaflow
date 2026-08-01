@@ -7,6 +7,7 @@ import { ReasonChips } from '@/components/rate/ReasonChips';
 import { StarInput } from '@/components/rate/StarInput';
 import { DishPhoto } from '@/components/station/DishPhoto';
 import { Card } from '@/components/ui/Card';
+import { Disclosure } from '@/components/ui/Disclosure';
 import { MonoText } from '@/components/ui/MonoText';
 import { Screen } from '@/components/ui/Screen';
 import { Touchable } from '@/components/ui/Touchable';
@@ -148,17 +149,24 @@ export default function RateConfirmScreen() {
               <MonoText className="text-muted text-[11px]">
                 {describeAttachment(draft.audio)}
               </MonoText>
-              <Text className="text-muted text-xs">
-                Your recording is kept with these words so the kitchen can listen to it later. It is
-                filed against this phone, never a name, and it is only sent when you press the
-                button below.
-              </Text>
+              <Disclosure tone="note" title="what happens to this recording">
+                <Text className="text-muted text-xs">
+                  It is kept with these words so the kitchen can listen to it later, filed against
+                  this phone and never a name.
+                </Text>
+              </Disclosure>
             </Card>
           )}
 
-          <Text className="text-muted text-xs">
-            Stored against this phone, not your name. Nothing is sent until you press Send.
-          </Text>
+          <View className="gap-1">
+            <Text className="text-muted text-xs">Nothing is sent until you press Send.</Text>
+            <Disclosure tone="note" title="where this review is stored">
+              <Text className="text-muted text-xs">
+                Against this phone, not your name. There is no account and nothing to sign into, and
+                clearing this app&apos;s data clears it.
+              </Text>
+            </Disclosure>
+          </View>
         </View>
       </ScrollView>
 

@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 
 import { Card } from '@/components/ui/Card';
+import { Disclosure } from '@/components/ui/Disclosure';
 import { MonoText } from '@/components/ui/MonoText';
 import { leftoverLabel, reasonLabel } from '@/lib/ratings';
 import type { RatingInterpretation } from '@/lib/store';
@@ -68,42 +69,45 @@ export function RatingInterpretationCard({
       </View>
 
       {interpretation.inferences.length === 0 ? null : (
-        <View className="border-separator gap-1 border-t pt-3">
-          <MonoText className="text-muted text-[11px]">Worked out, not said:</MonoText>
-          {interpretation.inferences.map((inference) => (
-            <View
-              key={`${inference.field}-${inference.value}-${inference.basis}`}
-              className="gap-0.5"
-            >
-              <Text className="text-foreground text-sm">
-                {inference.field}: {inference.value}
+        <View className="border-separator border-t pt-3">
+          <Disclosure
+            tone="note"
+            title="Worked out, not said"
+            hint={`${interpretation.inferences.length} ${interpretation.inferences.length === 1 ? 'field' : 'fields'} · tap to check them`}
+          >
+            {interpretation.inferences.map((inference) => (
+              <View
+                key={`${inference.field}-${inference.value}-${inference.basis}`}
+                className="gap-0.5"
+              >
+                <Text className="text-foreground text-sm">
+                  {inference.field}: {inference.value}
+                </Text>
+                <MonoText className="text-muted text-[10px]">
+                  confidence {inference.confidence.toFixed(2)}
+                  {inference.basis.length === 0 ? '' : ` · from “${inference.basis}”`}
+                </MonoText>
+              </View>
+            ))}
+          </Disclosure>
+        </View>
+      )}
+
+      {interpretation.corrections.length === 0 && interpretation.kitchenNote.length === 0 ? null : (
+        <View className="border-separator border-t pt-3">
+          <Disclosure tone="note" title="corrections and the note for the kitchen">
+            {interpretation.corrections.map((correction) => (
+              <Text key={correction} className="text-muted text-xs">
+                corrected before you saw it: {correction}
               </Text>
-              <MonoText className="text-muted text-[10px]">
-                confidence {inference.confidence.toFixed(2)}
-                {inference.basis.length === 0 ? '' : ` · from “${inference.basis}”`}
-              </MonoText>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {interpretation.corrections.length === 0 ? null : (
-        <View className="border-separator gap-1 border-t pt-3">
-          <MonoText className="text-muted text-[11px]">Corrected before you saw it:</MonoText>
-          {interpretation.corrections.map((correction) => (
-            <Text key={correction} className="text-muted text-xs">
-              {correction}
-            </Text>
-          ))}
-        </View>
-      )}
-
-      {interpretation.kitchenNote.length === 0 ? null : (
-        <View className="border-separator gap-1 border-t pt-3">
-          <MonoText className="text-muted text-[11px]">
-            For the kitchen · not shown to guests
-          </MonoText>
-          <Text className="text-foreground text-sm">{interpretation.kitchenNote}</Text>
+            ))}
+            {interpretation.kitchenNote.length === 0 ? null : (
+              <Text className="text-foreground text-sm">
+                {interpretation.kitchenNote}
+                <Text className="text-muted text-xs"> — not shown to other guests</Text>
+              </Text>
+            )}
+          </Disclosure>
         </View>
       )}
 

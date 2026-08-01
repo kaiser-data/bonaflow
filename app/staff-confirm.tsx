@@ -159,8 +159,7 @@ export default function ConfirmReportScreen() {
           {/* The fields below are the report. They are not repeated above it: one
               statement of each value, editable, is faster to check than two. */}
           <Text className="text-muted text-sm">
-            Nothing changes for guests or operations until you confirm. Every field can be corrected
-            first.
+            Nothing changes until you confirm — correct any field first.
           </Text>
 
           <View className="gap-5">

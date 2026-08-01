@@ -120,8 +120,8 @@ export default function ModeSelectScreen() {
         </View>
 
         <Text className="text-muted text-lg">
-          Say how your bowl was and what you left behind. Thirty seconds tells the kitchen what to
-          cook — and pays you back at the counter today.
+          Thirty seconds on your bowl tells the kitchen what to cook — and pays you back at the
+          counter today.
         </Text>
 
         <MonoText className="text-muted text-xs">

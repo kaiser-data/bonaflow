@@ -1,6 +1,7 @@
-import { Text, View } from 'react-native';
+import { Text } from 'react-native';
 
 import { Card } from '@/components/ui/Card';
+import { Disclosure } from '@/components/ui/Disclosure';
 import { MonoText } from '@/components/ui/MonoText';
 import { OFFLINE_INTERPRETATION_LABEL, type DraftInterpretation } from '@/lib/interpret';
 import { availabilityLabel, queueLabel } from '@/lib/stations';
@@ -65,8 +66,11 @@ export function InterpretationCard({
       )}
 
       {interpretation.inferences.length === 0 ? null : (
-        <View className="gap-1 pt-1">
-          <MonoText className="text-muted text-xs">Worked out, not said:</MonoText>
+        <Disclosure
+          tone="note"
+          title="Worked out, not said"
+          hint={`${interpretation.inferences.length} ${interpretation.inferences.length === 1 ? 'field' : 'fields'} · tap to check them`}
+        >
           {interpretation.inferences.map((inference) => (
             <MonoText key={`${inference.field}-${inference.value}`} className="text-muted text-xs">
               {fieldLabel(inference.field)} {inference.value} ·{' '}
@@ -74,23 +78,24 @@ export function InterpretationCard({
               {inference.basis.length === 0 ? '' : ` · from “${inference.basis}”`}
             </MonoText>
           ))}
-        </View>
+        </Disclosure>
       )}
 
-      {interpretation.corrections.length === 0
-        ? null
-        : interpretation.corrections.map((correction) => (
+      {interpretation.corrections.length === 0 && !photoAttached ? null : (
+        <Disclosure tone="note" title="corrections and the tray photo">
+          {interpretation.corrections.map((correction) => (
             <MonoText key={correction} className="text-muted text-xs">
               corrected: {correction}
             </MonoText>
           ))}
-
-      {photoAttached ? (
-        <MonoText className="text-muted text-xs">
-          The tray photo stays with this update as evidence for the team. It was not used to read
-          these fields.
-        </MonoText>
-      ) : null}
+          {photoAttached ? (
+            <MonoText className="text-muted text-xs">
+              The tray photo stays with this update as evidence for the team. It was not used to
+              read these fields.
+            </MonoText>
+          ) : null}
+        </Disclosure>
+      )}
     </Card>
   );
 }

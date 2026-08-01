@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Check, Gift } from 'lucide-react-native';
 
 import { Card } from '@/components/ui/Card';
+import { Disclosure } from '@/components/ui/Disclosure';
 import { MonoText } from '@/components/ui/MonoText';
 import { Screen } from '@/components/ui/Screen';
 import { Touchable } from '@/components/ui/Touchable';
@@ -122,10 +123,12 @@ export default function RewardsScreen() {
         <Text className="text-foreground text-base font-semibold">Rate another bowl</Text>
       </Touchable>
 
-      <Text className="text-muted text-xs">
-        Points belong to this phone, not to a name — there is no account and nothing to sign into.
-        Clearing this app&apos;s data clears them.
-      </Text>
+      <Disclosure tone="note" title="where these points live">
+        <Text className="text-muted text-xs">
+          They belong to this phone, not to a name — there is no account and nothing to sign into.
+          Clearing this app&apos;s data clears them.
+        </Text>
+      </Disclosure>
     </Screen>
   );
 }

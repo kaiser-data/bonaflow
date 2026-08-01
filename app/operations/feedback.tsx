@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 
 import { DishPhoto } from '@/components/station/DishPhoto';
 import { Card } from '@/components/ui/Card';
+import { Disclosure } from '@/components/ui/Disclosure';
 import { MonoText } from '@/components/ui/MonoText';
 import { Screen } from '@/components/ui/Screen';
 import { useLivePoll } from '@/hooks/useLivePoll';
@@ -65,7 +66,7 @@ export default function OperationsFeedbackScreen() {
 
       {ratings.length === 0 ? (
         <Text className="text-muted text-base">
-          No reviews yet. They appear here the moment a guest sends one, without anyone refreshing.
+          No reviews yet. They appear here the moment a guest sends one.
         </Text>
       ) : (
         <Card level="sm" className="gap-2 rounded-3xl p-4">
@@ -103,10 +104,12 @@ export default function OperationsFeedbackScreen() {
         </View>
       )}
 
-      <Text className="text-muted text-xs">
-        Reviews are stored against an anonymous device id, never a person. Points are awarded by the
-        backend, and the first review of a dish from a device is the only one that earns.
-      </Text>
+      <Disclosure tone="note" title="how these reviews are counted">
+        <Text className="text-muted text-xs">
+          Stored against an anonymous device id, never a person. Points are awarded by the backend,
+          and the first review of a dish from a device is the only one that earns.
+        </Text>
+      </Disclosure>
     </Screen>
   );
 }
@@ -142,17 +145,27 @@ function FeedbackCard({ feedback }: { feedback: DishFeedback }) {
       )}
 
       {feedback.comments.length === 0 ? null : (
-        <View className="border-separator gap-2 border-t pt-3">
-          <MonoText className="text-muted text-[11px]">in their own words</MonoText>
-          {feedback.comments.slice(0, 4).map((comment) => (
-            <View key={`${comment.createdAt}-${comment.text.slice(0, 12)}`} className="gap-0.5">
-              <Text className="text-foreground text-sm">“{comment.text}”</Text>
-              <MonoText className="text-muted text-[10px]">
-                {comment.language === 'de' ? 'German' : comment.language === 'en' ? 'English' : '—'}{' '}
-                · {formatAge(comment.createdAt)}
-              </MonoText>
-            </View>
-          ))}
+        <View className="border-separator border-t pt-3">
+          <Disclosure
+            tone="note"
+            title="in their own words"
+            hint={`${feedback.comments.length} ${feedback.comments.length === 1 ? 'comment' : 'comments'} · tap to read`}
+            contentClassName="gap-2"
+          >
+            {feedback.comments.slice(0, 4).map((comment) => (
+              <View key={`${comment.createdAt}-${comment.text.slice(0, 12)}`} className="gap-0.5">
+                <Text className="text-foreground text-sm">“{comment.text}”</Text>
+                <MonoText className="text-muted text-[10px]">
+                  {comment.language === 'de'
+                    ? 'German'
+                    : comment.language === 'en'
+                      ? 'English'
+                      : '—'}{' '}
+                  · {formatAge(comment.createdAt)}
+                </MonoText>
+              </View>
+            ))}
+          </Disclosure>
         </View>
       )}
     </Card>

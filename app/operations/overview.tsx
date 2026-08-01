@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import { IncentiveToggle } from '@/components/ops/IncentiveToggle';
 import { OpsStationRow } from '@/components/ops/OpsStationRow';
 import { Card } from '@/components/ui/Card';
+import { Disclosure } from '@/components/ui/Disclosure';
 import { MonoText } from '@/components/ui/MonoText';
 import { Screen } from '@/components/ui/Screen';
 import { useLivePoll } from '@/hooks/useLivePoll';
@@ -106,24 +107,23 @@ export default function OperationsOverviewScreen() {
                 : 'suggestion verified'}
             </MonoText>
 
-            <View className="border-separator gap-1 border-t pt-3">
-              <MonoText className="text-muted text-[10px] font-semibold">
-                BY DIETARY FILTER — DECLARED TAGS ONLY
-              </MonoText>
-              {DIET_FILTERS.map(({ value }) => {
-                const reference = recommendations[value];
-                const station = findStation(stations, reference?.stationId ?? null);
-                const dish = findDish(station, reference?.dishId ?? null);
+            <View className="border-separator border-t pt-3">
+              <Disclosure tone="note" title="by dietary filter — declared tags only">
+                {DIET_FILTERS.map(({ value }) => {
+                  const reference = recommendations[value];
+                  const station = findStation(stations, reference?.stationId ?? null);
+                  const dish = findDish(station, reference?.dishId ?? null);
 
-                return (
-                  <MonoText key={value} className="text-muted text-[11px]">
-                    {value === 'all' ? 'any diet' : dietTagLabel(value)} →{' '}
-                    {station === undefined || dish === undefined
-                      ? 'nothing available'
-                      : `Station ${station.code} · ${dish.name}`}
-                  </MonoText>
-                );
-              })}
+                  return (
+                    <MonoText key={value} className="text-muted text-[11px]">
+                      {value === 'all' ? 'any diet' : dietTagLabel(value)} →{' '}
+                      {station === undefined || dish === undefined
+                        ? 'nothing available'
+                        : `Station ${station.code} · ${dish.name}`}
+                    </MonoText>
+                  );
+                })}
+              </Disclosure>
             </View>
           </Card>
         )}
@@ -132,8 +132,7 @@ export default function OperationsOverviewScreen() {
       <View className="gap-3">
         <Text className="text-foreground text-lg font-semibold">Stations</Text>
         <MonoText className="text-muted text-[11px]">
-          grey means no update for over {STALE_AFTER_MINUTES} min · a quiet station is never shown
-          as available
+          grey = no update for over {STALE_AFTER_MINUTES} min
         </MonoText>
         {stations.map((station) => (
           <OpsStationRow

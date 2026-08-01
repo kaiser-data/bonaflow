@@ -3,6 +3,7 @@ import { FlatList, Linking, Text, View } from 'react-native';
 import { Download, FileDown, Play, Square } from 'lucide-react-native';
 
 import { Card } from '@/components/ui/Card';
+import { Disclosure } from '@/components/ui/Disclosure';
 import { MonoText } from '@/components/ui/MonoText';
 import { Screen } from '@/components/ui/Screen';
 import { Touchable } from '@/components/ui/Touchable';
@@ -152,10 +153,6 @@ export default function OperationsRecordingsScreen() {
               <Text className="text-foreground text-base font-semibold">
                 Download every transcript
               </Text>
-              <Text className="text-muted text-sm">
-                One CSV with each guest review and staff note, the language it was said in, and the
-                path of the recording it came from, so audio and words can be matched afterwards.
-              </Text>
 
               <Touchable
                 accessibilityLabel="Export every transcript as a CSV file"
@@ -170,6 +167,14 @@ export default function OperationsRecordingsScreen() {
                   {exporting ? 'Writing the file…' : 'Export transcripts'}
                 </Text>
               </Touchable>
+
+              <Disclosure tone="note" title="what is in the file">
+                <Text className="text-muted text-sm">
+                  One CSV row per guest review and staff note, with the language it was said in and
+                  the path of the recording it came from, so audio and words can be matched
+                  afterwards.
+                </Text>
+              </Disclosure>
 
               {exportState === null ? null : (
                 <View className="gap-2">
@@ -199,8 +204,7 @@ export default function OperationsRecordingsScreen() {
         }
         ListEmptyComponent={
           <Text className="text-muted text-base">
-            No voice notes yet. A guest review or a staff report spoken into the app appears here
-            with its audio and its transcript, without anyone refreshing.
+            No voice notes yet. A review or a report spoken into the app appears here on its own.
           </Text>
         }
         renderItem={({ item }) => (
@@ -215,10 +219,12 @@ export default function OperationsRecordingsScreen() {
         )}
         ListFooterComponent={
           recordings.length === 0 ? null : (
-            <Text className="text-muted text-xs">
-              Recordings are stored in the backend against an anonymous device id, never a person.
-              Every link is signed and expires, so nothing here is a public address.
-            </Text>
+            <Disclosure tone="note" title="how these recordings are stored">
+              <Text className="text-muted text-xs">
+                In the backend against an anonymous device id, never a person. Every link is signed
+                and expires, so nothing here is a public address.
+              </Text>
+            </Disclosure>
           )
         }
       />

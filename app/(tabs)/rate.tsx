@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Text, TextInput, View, type ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronDown, ChevronUp, Gift } from 'lucide-react-native';
+import { Gift } from 'lucide-react-native';
 
 import { DishChoice } from '@/components/rate/DishChoice';
 import { EarnNote } from '@/components/rate/EarnNote';
@@ -10,6 +10,7 @@ import { ReasonChips } from '@/components/rate/ReasonChips';
 import { StarInput } from '@/components/rate/StarInput';
 import { PermissionNotice } from '@/components/staff/PermissionNotice';
 import { HoldToTalkButton } from '@/components/staff/HoldToTalkButton';
+import { Disclosure } from '@/components/ui/Disclosure';
 import { MonoText } from '@/components/ui/MonoText';
 import { Screen } from '@/components/ui/Screen';
 import { Touchable } from '@/components/ui/Touchable';
@@ -280,61 +281,43 @@ export default function RateScreen() {
             className="border-separator gap-4 border-t pt-4"
             onLayout={(event) => settleScroll('taps', event.nativeEvent.layout.y)}
           >
-            <Touchable
-              accessibilityLabel={tapsOpen ? 'Hide the buttons' : 'Rate with buttons instead'}
-              accessibilityState={{ expanded: tapsOpen }}
-              onPress={() => {
-                const next = !tapsOpen;
+            <Disclosure
+              title="Rather not talk? Use the buttons"
+              hint="stars, how much was left, why"
+              open={tapsOpen}
+              onOpenChange={(next) => {
                 setTapsOpen(next);
                 setPendingScroll(next ? 'taps' : null);
               }}
-              className="flex-row items-center justify-between gap-3"
+              contentClassName="gap-5"
             >
-              <View className="flex-1 gap-0.5">
-                <Text className="text-foreground text-base font-semibold">
-                  Rather not talk? Use the buttons
-                </Text>
-                <MonoText className="text-muted text-[11px]">
-                  stars, how much was left, why · works with the microphone off
-                </MonoText>
-              </View>
-              {tapsOpen ? (
-                <ChevronUp color={colors.foreground} size={18} />
-              ) : (
-                <ChevronDown color={colors.foreground} size={18} />
-              )}
-            </Touchable>
+              <StarInput value={score} onChange={setScore} />
+              <LeftoverChoice value={leftover} onChange={setLeftover} />
+              <ReasonChips value={reasons} onChange={setReasons} />
 
-            {!tapsOpen ? null : (
-              <View className="gap-5">
-                <StarInput value={score} onChange={setScore} />
-                <LeftoverChoice value={leftover} onChange={setLeftover} />
-                <ReasonChips value={reasons} onChange={setReasons} />
-
-                <Touchable
-                  accessibilityLabel="Continue with these answers"
-                  accessibilityState={{ disabled: !canSubmitTaps }}
-                  disabled={!canSubmitTaps}
-                  onPress={submitTaps}
-                  style={{ minHeight: 56 }}
+              <Touchable
+                accessibilityLabel="Continue with these answers"
+                accessibilityState={{ disabled: !canSubmitTaps }}
+                disabled={!canSubmitTaps}
+                onPress={submitTaps}
+                style={{ minHeight: 56 }}
+                className={
+                  canSubmitTaps
+                    ? 'border-foreground items-center justify-center rounded-3xl border px-5'
+                    : 'border-border items-center justify-center rounded-3xl border px-5'
+                }
+              >
+                <Text
                   className={
                     canSubmitTaps
-                      ? 'border-foreground items-center justify-center rounded-3xl border px-5'
-                      : 'border-border items-center justify-center rounded-3xl border px-5'
+                      ? 'text-foreground text-lg font-semibold'
+                      : 'text-muted text-lg font-semibold'
                   }
                 >
-                  <Text
-                    className={
-                      canSubmitTaps
-                        ? 'text-foreground text-lg font-semibold'
-                        : 'text-muted text-lg font-semibold'
-                    }
-                  >
-                    Continue
-                  </Text>
-                </Touchable>
-              </View>
-            )}
+                  Continue
+                </Text>
+              </Touchable>
+            </Disclosure>
           </View>
         </>
       )}
