@@ -232,6 +232,22 @@ shared store every 3 seconds. No manual refresh button anywhere.
 TASKS TAB — open replenishment tasks, newest first, with station, dish, priority
 and age. Tapping one marks it done.
 
+INCENTIVES — an operational lever, NOT a rewards programme. An incentive object
+lives on the event config, set by operations, and NEVER produced by any AI:
+  { "active": true,
+    "text": "Free coffee at Station C",
+    "appliesToStationId": "station-c",
+    "authorizedBy": "event_organiser",
+    "expiresAt": "<iso8601>" }
+When active, the guest's recommended station card shows it as a small chip below
+the station name, together with a line showing who authorised it and when it
+expires — e.g. "Offered by the event organiser · until 13:15". It appears with the
+redirect that is already happening. Do not add a screen, a step, or a claim flow.
+Redemption is simply showing this screen at the station.
+Do NOT build points, balances, streaks, tiers, a wallet, redemption history, or
+one-time-use codes. There are no accounts in this app and there is no currency.
+For now, hardcode one incentive in the seed data; the ops toggle comes later.
+
 Also add a hidden MANUAL OVERRIDE for the demo: long-press the Report tab title to
 open a small panel that forces the scripted state change (Vegan Thai Curry at Green
 Kitchen -> sold out, station -> red, alert + task created). It must work with no
@@ -296,11 +312,19 @@ Rules, all mandatory:
   If the model's suggestion fails that check, use the deterministic rule from the
   For You tab. Code wins.
 
+Add an INCENTIVE TOGGLE to the Operations Overview: a switch that activates the
+incentive from the event config and shows which station it applies to. Turning it
+on updates the guest view like any other state change. Operations controls this —
+the OpenAI response must never contain an incentive field and must never invent
+an offer. If the model returns anything resembling one, ignore it.
+
 Then add ElevenLabs: transcribe the staff voice note, and speak the guest
-announcement in the Updates tab, in English and German, under 20 words each.
-  EN: "Station B is running low. Vegan options are available at Station C."
+announcement in the Updates tab, in English and German, under 20 words each. When
+an incentive is active, append its text as one short clause:
+  EN: "Station B is running low. Vegan options are available at Station C, with a
+       free coffee if you go now."
   DE: "Station B hat nur noch wenige Portionen. Vegane Optionen gibt es an
-       Station C."
+       Station C, mit einem Gratis-Kaffee."
 Pre-generate and BUNDLE these two clips so the stage path never waits on a network
 call. Confirm the audio mode is set for loud playback on iOS before playing — the
 silent-switch rule from the previous message applies to playback too. If ElevenLabs

@@ -300,6 +300,60 @@ who has to explain a decision to a client hears that clearly.
 
 ---
 
+## 9a. INCENTIVES — the lever that makes redirection actually work
+
+A redirect on its own is **advice**, and advice moves maybe a third of a queue. An incentive moves
+most of it:
+
+> *"Station C has vegan options and a shorter queue — **and a free coffee if you head over
+> now.**"*
+
+This is the beat that turns BonaFlow from a dashboard that *observes* into an operations tool that
+*acts*. Caterers already do this by hand with a staff member shouting; you're making it targeted,
+timed and measurable. **It is also the answer to "so what?" on the ops side** — the manager isn't
+just watching Station B go red, they have a lever to rebalance the room.
+
+Offer only what a caterer can actually absorb: **free coffee · free dessert · a drink upgrade ·
+skip-the-queue at a quieter station.** Low marginal cost, high perceived value, no kitchen work.
+
+### The boundaries — read these before building it
+
+- **The model NEVER offers an incentive.** It is not in the extraction schema and never comes out
+  of OpenAI. An LLM inventing free dessert is your app promising something the caterer did not
+  authorise. **Ops sets it. Full stop.**
+- **One-off, attached to a specific redirect. Not a points economy.** No balances, no history, no
+  leaderboard, no streaks, no accounts — auth is banned anyway (§4), and a currency invites *"what
+  redemption rate do you expect?"*, a question you cannot answer.
+- **Redemption is: show this screen at Station C.** No payment, no scan validation, no
+  integration, no one-time-use enforcement. If a judge asks about abuse, the honest answer is
+  *"it's a coffee, and the alternative is a 20-minute queue — the caterer decides the risk."*
+- **`authorizedBy` and an expiry are mandatory and both render.** An incentive with no visible
+  authority and no end time is a promise nobody owns.
+- **Label it as demonstration data** like everything else (§13).
+
+### Shape — event/ops config, never model output
+
+```json
+{
+  "incentive": {
+    "active": true,
+    "text": "Free coffee at Station C",
+    "appliesToStationId": "station-c",
+    "authorizedBy": "event_organiser | caterer | us_for_demo",
+    "expiresAt": "2026-08-01T13:15:00Z"
+  }
+}
+```
+
+Ops toggles it from the Operations view. When active, it rides along with the redirect that is
+already firing — **no extra screen, no extra demo step** — as a chip under the recommended
+station and one clause appended to the announcement.
+
+**If you are behind, cut the ops toggle and hardcode one incentive in the seed data.** The pitch
+line survives intact; only the control surface goes.
+
+---
+
 ## 10. OPERATIONS EXPERIENCE
 
 Dashboard shows: all stations · current status · queue level · available dishes · low-stock items
@@ -397,9 +451,13 @@ and the demo continues.
 10. A **high-priority replenishment task** appears.
 11. **Guest View updates.** *Do not touch the guest device. Let it change by itself.*
 12. Vegan guests are redirected to **Station C**.
-13. ElevenLabs announces: *"Station B is running low. Vegan options are available at Station C
-    with a shorter queue."*
+13. ElevenLabs announces: *"Station B is running low. Vegan options are available at Station C —
+    **and a free coffee if you head over now.**"*
 14. Operations View shows the new alert and the latest update.
+
+> **The line to say over step 13:** *"And it doesn't just tell them to move — it gives the caterer
+> a lever to actually move them. That's the difference between a dashboard and an operations
+> tool."* The incentive chip appears with the redirect; it costs no extra demo step (§9a).
 
 **Under two minutes.** Step 11 is the entire pitch — protect it above everything else.
 
@@ -505,6 +563,11 @@ complex menus · push-notification infrastructure · multi-event management · A
 inbox. **Not a nutrition tracker** — dietary tags render and stop. **No allergen or calorie
 estimation from a photo, ever.**
 
+**Not a rewards programme.** The incentive in §9a is a one-off operational lever attached to a
+redirect. **Do not build** points, balances, streaks, tiers, a wallet, redemption history,
+one-time-use codes, or anything a guest could "collect". The moment it becomes a currency it needs
+accounts, it invites *"what redemption rate?"*, and you are demoing a loyalty app.
+
 ---
 
 ## 20. FALLBACKS
@@ -572,7 +635,7 @@ with a broken one.** Know this floor so you don't panic at 15:00.
 4. **Live demonstration** — the Station B scenario (§14).
 5. **Business value** — better guest experience · faster operational response · better
    distribution between stations · fewer avoidable shortages · directional waste reduction ·
-   structured event data.
+   structured event data · **a targeted lever to rebalance the room, not just observe it** (§9a).
    *Do not put a euro figure on any of these. You cannot substantiate one, and a sharp founder
    will ask.*
 6. **Technology** — OpenAI, ElevenLabs, Bilt/PWA, Supabase. One sentence each. **Then the line

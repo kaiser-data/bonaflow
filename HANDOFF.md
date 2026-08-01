@@ -50,6 +50,12 @@ redirect for every guest in the room, in their own language.*
 - **Never claim a dish is allergy-safe.** Filter declared tags only; always show *"demonstration
   data — confirm allergens with catering staff."*
 - **Seeded demo event is the demo path** (§5). Real lunch data is opportunistic, never a blocker.
+- **Incentives are in scope. A rewards programme is not** (MASTER §9a). A redirect can carry
+  *"free coffee at Station C"* — that's what turns advice into movement, and it's the ops team's
+  lever, not a guest feature. **Ops sets it; the model never offers one** (an LLM inventing free
+  dessert promises something the caterer never authorised). No points, balances, streaks, wallet
+  or redemption history — those need accounts and invite *"what redemption rate?"*. Redemption is
+  **"show this screen at Station C."** `authorizedBy` + expiry always visible.
 
 ---
 
@@ -144,9 +150,13 @@ daily office delivery?"* Their number goes in your Q&A. Don't guess it.
 10. High-priority **replenishment task** appears.
 11. **Guest View updates — do not touch the guest device. Count to two out loud.**
 12. Vegan guests redirected to **Station C**.
-13. ElevenLabs: *"Station B is running low. Vegan options are available at Station C with a
-    shorter queue."*
+13. ElevenLabs: *"Station B is running low. Vegan options are available at Station C — **and a
+    free coffee if you head over now.**"*
 14. Ops View shows the alert and the latest update.
+
+**Say this over step 13:** *"And it doesn't just tell them to move — it gives the caterer a lever
+to actually move them. That's the difference between a dashboard and an operations tool."*
+The incentive chip rides along with the redirect; **it costs no extra demo step.**
 
 **Step 11 is the entire pitch.** The mode selector saves you if a device dies.
 

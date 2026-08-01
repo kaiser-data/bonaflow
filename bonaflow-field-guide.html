@@ -331,6 +331,39 @@ photo · <strong>the closed list of this event&rsquo;s station and dish ids</str
   clearly.</p>
 </div>
 
+<h3>Incentives — the lever that turns advice into movement</h3>
+<p>A redirect on its own is <strong>advice</strong>, and advice moves maybe a third of a queue.
+An incentive moves most of it: <em>&ldquo;Station C has vegan options and a shorter queue —
+<strong>and a free coffee if you head over now.</strong>&rdquo;</em> This is what turns BonaFlow
+from a dashboard that <em>observes</em> into an operations tool that <em>acts</em> — and it is the
+answer to &ldquo;so what?&rdquo; on the ops side: the manager isn&rsquo;t just watching Station B
+go red, they have a lever to rebalance the room.</p>
+<p>Offer only what a caterer can absorb: <strong>free coffee · free dessert · a drink upgrade ·
+skip-the-queue at a quieter station.</strong> Low marginal cost, high perceived value, no kitchen
+work.</p>
+<div class="box warn">
+  <div class="bt">⚠ An incentive is an operational lever, not a rewards programme</div>
+  <ul style="margin-bottom:0">
+    <li><strong>The model NEVER offers one.</strong> It is not in the extraction schema and never
+        comes out of OpenAI. An LLM inventing free dessert promises something the caterer did not
+        authorise. <strong>Ops sets it. Full stop.</strong></li>
+    <li><strong>One-off, attached to a specific redirect.</strong> No points, balances, streaks,
+        tiers, wallet or redemption history — those need accounts, and a currency invites
+        <em>&ldquo;what redemption rate do you expect?&rdquo;</em>, which you cannot answer.</li>
+    <li><strong>Redemption is: show this screen at Station C.</strong> No payment, no scan
+        validation, no one-time-use enforcement. If asked about abuse:
+        <em>&ldquo;it&rsquo;s a coffee, and the alternative is a 20-minute queue — the caterer
+        decides the risk.&rdquo;</em></li>
+    <li><strong><span class="mono">authorizedBy</span> and an expiry are mandatory and both
+        render.</strong> An offer with no visible authority and no end time is a promise nobody
+        owns.</li>
+  </ul>
+</div>
+<p>It rides along with the redirect that is already firing — <strong>a chip under the recommended
+station and one clause on the announcement. No extra screen, no extra demo step.</strong> If
+you&rsquo;re behind, cut the ops toggle and hardcode one incentive in the seed data; the pitch
+line survives intact.</p>
+
 <div class="prompt">resolveRedirect(dish, fromStation, modelSuggestion):
   candidates = stations with a matching-dietaryTags dish, availability "available"
   drop fromStation
@@ -435,8 +468,11 @@ announcement.</p>
   <tr class="hi"><td class="num">11</td><td><strong>Do not touch the guest device. Let it change
       by itself. Count to two out loud.</strong></td>
       <td><strong>Guest view updates in the room&rsquo;s hands</strong></td></tr>
-  <tr><td class="num">12–13</td><td>Vegan guests redirected to C. ElevenLabs announces, EN then DE.</td>
-      <td>Announcement</td></tr>
+  <tr><td class="num">12–13</td><td>Vegan guests redirected to C. ElevenLabs announces, EN then
+      DE — <em>&ldquo;&hellip;and a free coffee if you head over now.&rdquo;</em>
+      <strong>Say:</strong> &ldquo;It doesn&rsquo;t just tell them to move — it gives the caterer a
+      lever to actually move them.&rdquo;</td>
+      <td>Announcement + <strong>incentive chip</strong></td></tr>
   <tr><td class="num">14</td><td>&ldquo;And operations already has the alert.&rdquo;</td>
       <td>Ops: alert + latest update</td></tr>
 </table>
@@ -489,7 +525,9 @@ recognition · tray-volume measurement · wait-time prediction · real B&amp;B i
 inventory management · delivery logistics · push infrastructure · multi-event · App Store
 deployment · ratings or gamification. <strong>Not a complaint box</strong> — guests report
 availability, not grievances. <strong>Not a nutrition tracker.</strong> <strong>No allergen or
-calorie estimation from a photo, ever.</strong></p>
+calorie estimation from a photo, ever.</strong> <strong>Not a rewards programme</strong> — the
+incentive is a one-off lever on a redirect; no points, balances, streaks, tiers, wallet or
+redemption history.</p>
 
 <h3>Pitch — three minutes</h3>
 <p><strong>Hook:</strong> <em>&ldquo;At large events, the problem is rarely that there is no food.
