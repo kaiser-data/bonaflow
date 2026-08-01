@@ -4,21 +4,27 @@
 
 Build and deploy a mobile-first Next.js 15 PWA for the BonaFlow hackathon demo. The first release must prove the core cross-device loop: a staff action changes shared Supabase state and an untouched guest view reflects the change within roughly three seconds.
 
+Implementation begins at 14:35 with a hard feature freeze at 16:00. Decisions prioritize a working public URL and real-phone verification within that 85-minute window.
+
 The PWA is independent from the Bilt application. It has its own deployment and state. A new Vercel project will be created from this GitHub repository and connected to the user's existing Supabase project.
 
 ## Delivery Priorities
 
-The implementation follows this order and does not advance past the shared-state gate until it works:
+Supabase setup begins immediately rather than waiting for the local UI. The setup SQL is the first implementation artifact so the user can create the table while the application is being written.
 
-1. Typed event seed and deterministic state logic.
-2. Supabase-backed state routes.
-3. Deployable guest view with dietary filters, recommendations, images, and polling.
+The implementation then follows this order and does not advance past the shared-state gate until it works:
+
+1. Supabase setup SQL, typed event seed, and deterministic state logic.
+2. Supabase-backed state routes, wired to credentials as soon as they are supplied.
+3. Guest view with dietary filters, recommendations, images, and polling, followed immediately by the first Vercel deployment.
 4. Staff quick actions and confirmation workflow.
 5. End-to-end staff-to-guest shared-state update.
 6. Operations view.
 7. Nebius extraction with deterministic fallback.
 8. ElevenLabs announcements with committed fallback audio.
 9. PWA offline support and final visual polish.
+
+Deploy again after every completed step from step 4 onward. A working early URL takes priority over later polish.
 
 The initial prototype uses the real dish images already under `assets/dishes/`. They are copied into `public/dishes/` at build time and never fetched at runtime.
 
@@ -99,7 +105,7 @@ The confirmation view shows editable Station, Dish, Availability, Queue, Reporte
 
 ## External Services and Failure Handling
 
-Supabase is the only required hosted dependency for the cross-device prototype. Credentials will be supplied after the local build is ready. A setup SQL file will be committed so the schema and seed can be installed reproducibly.
+Supabase is the only required hosted dependency for the cross-device prototype. A setup SQL file is emitted first and committed so the schema and seed can be installed immediately and reproducibly. Supabase credentials are supplied and wired in parallel with the local build rather than after it.
 
 Nebius uses the OpenAI-compatible SDK only inside `/api/staff-update`, with an eight-second timeout and strict JSON-schema output. Server-side validation rejects invented identifiers or invalid enums. Any timeout, API error, or invalid result invokes the deterministic keyword interpreter and labels the result as an offline interpretation.
 
@@ -109,28 +115,24 @@ Missing dish images render a neutral grey placeholder. Poll failures retain the 
 
 ## PWA and Visual System
 
-The app uses an installable manifest, 192px and 512px icons, standalone display mode, an offline shell, and cached local dish images. It is portrait-first and tested at common iPhone and Android widths.
+The app uses an installable manifest, 192px and 512px icons, standalone display mode, an offline shell, and cached local dish images. It is portrait-first and tested on the available iPhone and Android devices.
+
+Once the first production URL exists, the build generates a QR code whose target is the deployed `/guest` URL. The QR is committed as a PNG and rendered at a large, high-contrast size on the home page so it can be scanned from a projected slide. It is regenerated if the production domain changes.
 
 The visual system follows the supplied palette: warm off-white background, deep green primary, rounded cards, large tap targets, and monospace state values and timestamps. Status colours are reserved exclusively for status communication. Disclaimers remain visible in the role views rather than being hidden in an about screen.
 
 ## Testing and Verification
 
-Vitest and Testing Library cover pure state behavior and interactive UI. Route tests exercise repository-backed API behavior without external network calls. Playwright covers the primary mobile journeys.
+The automated test budget is intentionally limited to four high-value Vitest unit tests for the demo's deterministic core:
 
-Required automated coverage includes:
+- closed-set validation rejects an invented `stationId` or `dishId`;
+- apply sequencing updates dish availability, station status, alert, replenishment task, and counter;
+- reset restores the exact seed; and
+- recommendation ranking prefers the shorter queue and excludes the current station.
 
-- dietary filtering, no-match copy, and queue-ranked recommendations;
-- deterministic quick-action extraction;
-- closed-set validation and invalid-model fallback;
-- apply sequencing for availability, station status, alerts, tasks, counter, and recommendations;
-- reset restoring the exact seed;
-- polling retaining last-known state on failure;
-- confirmation preventing writes before Confirm;
-- incentive display and model-output rejection;
-- allergen and visible-ingredient separation; and
-- manifest and service-worker asset availability.
+No browser-testing dependency or browser binary is installed during the build window. Type checking and a production build still run. UI, microphone, polling, PWA installation, and cross-device behavior are verified manually on the available real phones.
 
-Before deployment, the project must pass unit tests, lint, type checking, a production build, and Playwright mobile smoke tests. After deployment, the Vercel URL must be tested with one guest client and one staff client against the Supabase row. The acceptance test is an `Item sold out` update for the Vegan Chickpeas Quinoa Salad causing Atrium to change status and the vegan recommendation to move within one polling interval without touching the guest client.
+After the first and subsequent deployments, the Vercel URL is tested with one guest client and one staff client against the Supabase row. The acceptance test is an `Item sold out` update for the Vegan Chickpeas Quinoa Salad causing Atrium to change status and the vegan recommendation to move within one polling interval without touching the guest client.
 
 ## Deployment and Secrets
 
