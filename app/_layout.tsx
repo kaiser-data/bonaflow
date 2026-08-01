@@ -28,6 +28,7 @@ import { colors } from '@/lib/theme';
 import { initPostHog } from '@/lib/posthog';
 import { registerServiceWorker } from '@/lib/registerServiceWorker';
 import { reportErrorToParent } from '@/lib/reportPreviewError';
+import { useBackendSync } from '@/lib/sync';
 import { InstallPrompt } from '@/components/InstallPrompt';
 
 /**
@@ -133,6 +134,10 @@ export default function RootLayout() {
   useEffect(() => {
     registerServiceWorker();
   }, []);
+
+  // One backend poll for the whole device: hydrates the shared store every three
+  // seconds so guest, staff and operations views follow reports made elsewhere.
+  useBackendSync();
 
   useEffect(() => {
     if (loaded || error) {

@@ -15,11 +15,11 @@ export type LivePoll = {
 /**
  * Keeps a screen current without a refresh button.
  *
- * The shared store pushes changes to every subscribed screen, so a staff report
- * reaches the guest view immediately. Real-time sync across devices is not
- * available in this prototype, so this hook re-reads the shared store every
- * three seconds as the documented fallback; the returned values also make
- * relative ages and timestamps re-render on the same cadence.
+ * The shared state lives in the backend and is fetched every three seconds by
+ * `lib/sync.ts`, which hydrates the store every screen reads; polling is the
+ * deliberate choice over websockets because it recovers by itself on unreliable
+ * conference wifi. This hook re-reads the store on the same cadence so relative
+ * ages and timestamps stay current even when no data changed.
  */
 export function useLivePoll(intervalMs: number = LIVE_POLL_MS): LivePoll {
   const [poll, setPoll] = useState<LivePoll>(() => ({

@@ -4,12 +4,18 @@ import { eventNowIso } from '@/lib/clock';
 import { computeRecommendations, deriveStationStatus, describeUpdate } from '@/lib/stations';
 
 /**
- * Single in-memory store for BonaFlow.
+ * Single store for BonaFlow, and the only read path for every screen.
  *
- * Everything the UI reads lives here, so the seeded arrays can later be
- * replaced by an API response without touching any screen. Guest, staff and
- * operations screens all subscribe to this one store, which is why a staff
- * report shows up in the guest view without anyone touching it.
+ * The shared event data now lives in the backend; this store is the local cache
+ * in front of it. `lib/sync.ts` hydrates it from the backend every three
+ * seconds and pushes every write, so a report made on one phone reaches the
+ * guest view on another phone without anyone touching it. Screens never talk to
+ * the backend directly, and they keep working from the last known state when a
+ * fetch fails.
+ *
+ * The seeded arrays below are the starting point held in memory: they are what
+ * the app shows before the first successful fetch, and what it keeps showing if
+ * the network is unavailable.
  */
 
 export type AppMode = 'guest' | 'staff' | 'operations';
@@ -253,9 +259,54 @@ const SEEDED_STATIONS: readonly Station[] = [
 
 let idCounter = 0;
 
+/**
+ * Ids are generated on the device that creates the row, so a write can be
+ * retried against the backend without duplicating anything, and two phones
+ * reporting at the same time can never produce the same id.
+ */
 function makeId(prefix: string): string {
   idCounter += 1;
-  return `${prefix}-${idCounter}`;
+  const random = Math.random().toString(36).slice(2, 8);
+  return `${prefix}-${Date.now().toString(36)}-${idCounter}-${random}`;
+}
+
+/** Shared event data as it comes back from the backend. */
+export type SharedSnapshot = {
+  event: EventInfo;
+  stations: readonly Station[];
+  updates: readonly StaffUpdate[];
+  alerts: readonly StationAlert[];
+  tasks: readonly ReplenishmentTask[];
+};
+
+/** A confirmed report, ready to be pushed to the backend. */
+export type ReportWrite = {
+  kind: 'report';
+  update: StaffUpdate;
+  /** The station as it now stands, including its dishes. */
+  station: Station | null;
+  alert: StationAlert;
+  task: ReplenishmentTask | null;
+};
+
+/** Every change the backend needs to hear about. */
+export type PendingWrite =
+  | ReportWrite
+  | { kind: 'task_completed'; taskId: string; completedAt: string }
+  | { kind: 'incentive'; incentive: Incentive | null };
+
+let writeBridge: ((write: PendingWrite) => void) | null = null;
+
+/**
+ * Connects the sync layer to the store without the store importing it, so the
+ * store stays a plain cache with no network code in it.
+ */
+export function registerWriteBridge(handler: (write: PendingWrite) => void): void {
+  writeBridge = handler;
+}
+
+function emitWrite(write: PendingWrite): void {
+  writeBridge?.(write);
 }
 
 type BonaFlowState = {
@@ -273,6 +324,8 @@ type BonaFlowState = {
   recommendations: Readonly<Record<DietFilter, RecommendationRef | null>>;
   /** Bumped on every mutation so pollers can detect a change cheaply. */
   revision: number;
+  /** Event-clock time of the last successful backend fetch. Never blanks the UI. */
+  lastSyncedAt: string | null;
   mode: AppMode | null;
   dietFilter: DietFilter;
   /** Station the staff member is currently reporting for. */
@@ -282,6 +335,8 @@ type BonaFlowState = {
   setMode: (mode: AppMode | null) => void;
   setDietFilter: (filter: DietFilter) => void;
   selectStation: (stationId: string) => void;
+  /** Replace the shared data with what the backend returned. */
+  hydrate: (snapshot: SharedSnapshot) => void;
   /** Open the confirmation flow with an interpreted report. */
   startDraft: (draft: UpdateDraft) => void;
   patchDraft: (patch: Partial<UpdateDraft>) => void;
@@ -291,6 +346,8 @@ type BonaFlowState = {
   /** Apply a report straight away (quick actions, manual override). */
   applyReport: (draft: UpdateDraft) => void;
   completeTask: (taskId: string) => void;
+  /** Operations lever: turn the seeded incentive on or off. */
+  setIncentiveActive: (active: boolean) => void;
 };
 
 /**
@@ -302,9 +359,16 @@ type BonaFlowState = {
  *   5. create a replenishment task
  *   6. recalculate the recommended station for each dietary filter
  * Steps 7 and 8 need no code: the guest and operations screens read this same
- * store, so they re-render as soon as it changes.
+ * store, so they re-render as soon as it changes — on this device immediately,
+ * on other devices on their next poll.
+ *
+ * It returns the local patch and the rows the backend must be told about, in
+ * the same order, so the network layer never has to re-derive anything.
  */
-function applyDraft(state: BonaFlowState, draft: UpdateDraft): Partial<BonaFlowState> {
+function applyDraft(
+  state: BonaFlowState,
+  draft: UpdateDraft,
+): { patch: Partial<BonaFlowState>; write: ReportWrite } {
   const createdAt = eventNowIso();
 
   // 1. save the update
@@ -337,44 +401,43 @@ function applyDraft(state: BonaFlowState, draft: UpdateDraft): Partial<BonaFlowS
   const described = describeUpdate(update, station?.name ?? 'Station', dish?.name ?? null);
 
   // 4. create an alert
-  const alerts: readonly StationAlert[] = [
-    {
-      id: makeId('alert'),
-      stationId: draft.stationId,
-      dishId: draft.dishId,
-      priority: draft.priority,
-      message: described.alertMessage,
-      recommendedAction: described.recommendedAction,
-      createdAt,
-    },
-    ...state.alerts,
-  ];
+  const alert: StationAlert = {
+    id: makeId('alert'),
+    stationId: draft.stationId,
+    dishId: draft.dishId,
+    priority: draft.priority,
+    message: described.alertMessage,
+    recommendedAction: described.recommendedAction,
+    createdAt,
+  };
+  const alerts: readonly StationAlert[] = [alert, ...state.alerts];
 
   // 5. create a replenishment task, unless the report needs no follow-up
-  const tasks: readonly ReplenishmentTask[] =
+  const task: ReplenishmentTask | null =
     draft.action === 'none'
-      ? state.tasks
-      : [
-          {
-            id: makeId('task'),
-            stationId: draft.stationId,
-            dishId: draft.dishId,
-            action: draft.action,
-            priority: draft.priority,
-            status: 'open',
-            createdAt,
-            completedAt: null,
-          },
-          ...state.tasks,
-        ];
+      ? null
+      : {
+          id: makeId('task'),
+          stationId: draft.stationId,
+          dishId: draft.dishId,
+          action: draft.action,
+          priority: draft.priority,
+          status: 'open',
+          createdAt,
+          completedAt: null,
+        };
+  const tasks: readonly ReplenishmentTask[] = task === null ? state.tasks : [task, ...state.tasks];
 
   // 6. recalculate the recommended station for each dietary filter
   const recommendations = computeRecommendations(stations);
 
-  return { updates, stations, alerts, tasks, recommendations, revision: state.revision + 1 };
+  return {
+    patch: { updates, stations, alerts, tasks, recommendations, revision: state.revision + 1 },
+    write: { kind: 'report', update, station: station ?? null, alert, task },
+  };
 }
 
-export const useBonaFlowStore = create<BonaFlowState>((set) => ({
+export const useBonaFlowStore = create<BonaFlowState>((set, get) => ({
   event: EVENT,
   stations: SEEDED_STATIONS,
   announcements: [],
@@ -383,6 +446,7 @@ export const useBonaFlowStore = create<BonaFlowState>((set) => ({
   tasks: [],
   recommendations: computeRecommendations(SEEDED_STATIONS),
   revision: 0,
+  lastSyncedAt: null,
   mode: null,
   dietFilter: 'all',
   selectedStationId: SEEDED_STATIONS[0].id,
@@ -390,22 +454,54 @@ export const useBonaFlowStore = create<BonaFlowState>((set) => ({
   setMode: (mode) => set({ mode }),
   setDietFilter: (dietFilter) => set({ dietFilter }),
   selectStation: (selectedStationId) => set({ selectedStationId }),
+  hydrate: (snapshot) =>
+    set((state) => ({
+      event: snapshot.event,
+      stations: snapshot.stations,
+      updates: snapshot.updates,
+      alerts: snapshot.alerts,
+      tasks: snapshot.tasks,
+      recommendations: computeRecommendations(snapshot.stations),
+      revision: state.revision + 1,
+      lastSyncedAt: eventNowIso(),
+      // Local-only choices (mode, filter, draft) survive a hydrate untouched.
+      selectedStationId: snapshot.stations.some((entry) => entry.id === state.selectedStationId)
+        ? state.selectedStationId
+        : (snapshot.stations[0]?.id ?? state.selectedStationId),
+    })),
   startDraft: (draft) => set({ draft }),
   patchDraft: (patch) =>
     set((state) => (state.draft === null ? state : { draft: { ...state.draft, ...patch } })),
   clearDraft: () => set({ draft: null }),
-  commitDraft: () =>
-    set((state) =>
-      state.draft === null ? state : { ...applyDraft(state, state.draft), draft: null },
-    ),
-  applyReport: (draft) => set((state) => applyDraft(state, draft)),
-  completeTask: (taskId) =>
+  commitDraft: () => {
+    const { draft } = get();
+    if (draft === null) return;
+    const { patch, write } = applyDraft(get(), draft);
+    set({ ...patch, draft: null });
+    emitWrite(write);
+  },
+  applyReport: (draft) => {
+    const { patch, write } = applyDraft(get(), draft);
+    set(patch);
+    emitWrite(write);
+  },
+  completeTask: (taskId) => {
+    const completedAt = eventNowIso();
     set((state) => ({
       tasks: state.tasks.map((task) =>
-        task.id === taskId ? { ...task, status: 'done', completedAt: eventNowIso() } : task,
+        task.id === taskId ? { ...task, status: 'done', completedAt } : task,
       ),
       revision: state.revision + 1,
-    })),
+    }));
+    emitWrite({ kind: 'task_completed', taskId, completedAt });
+  },
+  setIncentiveActive: (active) => {
+    const { event } = get();
+    if (event.incentive === null) return;
+    const incentive: Incentive = { ...event.incentive, active };
+    set({ event: { ...event, incentive }, revision: get().revision + 1 });
+    emitWrite({ kind: 'incentive', incentive });
+  },
 }));
 
 export function findStation(
