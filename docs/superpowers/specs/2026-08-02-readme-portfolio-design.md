@@ -41,7 +41,7 @@ Include:
 - Event/demo context: 8x × Bella & Bona Mobile Hack, Delta Campus Berlin.
 - Prominent links to the live Guest, Staff, Operations, and Feedback routes.
 - Links to the two-slide PDF and editable HTML presentation.
-- Compact badges for Next.js, React, TypeScript, Supabase, Vercel, PWA, Nebius, and ElevenLabs. Badges are descriptive; they must not claim passing CI or active credentials.
+- Compact text badges using Markdown inline-code styling for Next.js, React, TypeScript, Supabase, Vercel, PWA, Nebius, and ElevenLabs. Do not use externally hosted badge images, claim passing CI, or imply active credentials.
 - A visual row using the committed React Guest and Operations screenshots. Use HTML `<img>` elements with explicit widths so the tall mobile captures remain legible and do not dominate the page.
 
 ### 2. Problem and Product
