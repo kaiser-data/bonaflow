@@ -768,10 +768,11 @@ Expected: all tests pass, TypeScript reports no errors, the production build suc
 ```bash
 rg -n "validateDishRating|validateFeedbackExplanation|submitRatedFeedback|buildDemoVoucher|BONAFLOW-DEMO|loadStoredVoucher|feedbackSummary" src
 rg -n "NEBIUS_API_KEY|ELEVENLABS_API_KEY|SUPABASE_SERVICE_ROLE_KEY" src/server src/app/api
-rg -n "rating" src/server/nebius-feedback.ts
+if rg -n 'rating\s*:|"rating"' src/server/nebius-feedback.ts; then exit 1; fi
+rg -n "Do not produce a rating" src/server/nebius-feedback.ts
 ```
 
-Expected: direct rating/reward logic exists in application code; secrets remain server-side; the Nebius feedback schema/prompt does not gain or infer a rating.
+Expected: direct rating/reward logic exists in application code; secrets remain server-side; the Nebius feedback schema does not gain a rating field, and its prompt still forbids inferred ratings.
 
 - [ ] **Step 3: Perform local manual acceptance**
 
