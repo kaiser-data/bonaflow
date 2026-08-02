@@ -2,7 +2,7 @@
 
 **Date:** 2 August 2026
 
-**Status:** Approved concept; written specification pending final user review
+**Status:** Approved for implementation
 
 ## Purpose
 
