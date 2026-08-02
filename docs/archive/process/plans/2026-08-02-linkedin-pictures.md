@@ -12,7 +12,7 @@
 
 - Create exactly six images in `linkedin-pictures/`.
 - Copy; never move, crop, resize, compress, recolor, or regenerate source assets.
-- Use the six destination names approved in `docs/superpowers/specs/2026-08-02-linkedin-pictures-design.md`.
+- Use the six destination names approved in `docs/archive/process/specs/2026-08-02-linkedin-pictures-design.md`.
 - Add no non-image files to the destination.
 - Leave application code, source visuals, raw event photographs, and deployment unchanged.
 - Commit and push to `main`.

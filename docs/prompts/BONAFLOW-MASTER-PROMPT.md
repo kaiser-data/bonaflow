@@ -3,8 +3,9 @@
 **Paste-ready build spec.** v2, integrated 12:00 · 8x × Bella&Bona Mobile Hackathon, Berlin.
 Feature freeze 16:00 · Demos 16:30 · Pitches 17:15.
 
-> Companion files: **`BILT-PROMPT.md`** (phased paste prompts) · **`BonaFlow-Field-Guide.pdf`**
-> (printed reference) · **`HANDOFF.md`** (execution only).
+> Companion files: **`docs/prompts/BILT-PROMPT.md`** (phased paste prompts) ·
+> **`docs/field-guide/BonaFlow-Field-Guide.pdf`** (printed reference) ·
+> **`docs/demo/HANDOFF.md`** (execution only).
 
 ---
 
@@ -174,7 +175,7 @@ and Bilt's iOS-only streamed simulator becomes an asset rather than a liability.
 platforms from the first screen** — cross-platform bugs cost minutes now and an hour at 15:30.
 
 - **Bilt / React Native** — the partner prize, and real native camera/mic. Use the phased prompts
-  in `BILT-PROMPT.md`. *Generate a real React Native application, not a website wrapper.*
+  in `docs/prompts/BILT-PROMPT.md`. *Generate a real React Native application, not a website wrapper.*
 - **Next.js PWA** — no build step, no install friction for the room scanning your QR. Also
   cross-platform: Android Chrome and iOS Safari both give camera and mic.
 
@@ -533,7 +534,7 @@ Runs on **a physical iPhone and a physical Android** · microphone access · ima
 upload · portrait · responsive loading states · **permission-denied recovery** · one-hand
 reachability · **text alternative to voice always** · demo station selection if QR scanning fails.
 
-**Cross-platform musts** (full detail and the parity checklist in `BILT-PROMPT.md`): safe-area
+**Cross-platform musts** (full detail and the parity checklist in `docs/prompts/BILT-PROMPT.md`): safe-area
 insets so tabs clear the iPhone home indicator · shadow *and* elevation on cards · monospace via
 `Platform.select` (`"monospace"` silently falls back on iOS) · `KeyboardAvoidingView` behaviour
 per platform · never hardcode an audio mime type, iOS and Android produce different containers ·

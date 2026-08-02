@@ -5,8 +5,9 @@
 Sat 1 Aug 2026 · 8x × Bella&Bona Mobile Hackathon · Delta Campus, Donaustraße 44, Berlin
 Martin (kaiser-data) + Vijay · **Demos 16:30** · Pitches 17:15 · **Feature freeze 16:00**
 
-> **Files.** Spec of record: **`BONAFLOW-MASTER-PROMPT.md`** — paste from there, never from the
-> PDF. Bilt phases: **`BILT-PROMPT.md`**. Printed reference: **`BonaFlow-Field-Guide.pdf`**.
+> **Files.** Spec of record: **`docs/prompts/BONAFLOW-MASTER-PROMPT.md`** — paste from there,
+> never from the PDF. Bilt phases: **`docs/prompts/BILT-PROMPT.md`**. Printed reference:
+> **`docs/field-guide/BonaFlow-Field-Guide.pdf`**.
 > *(The earlier BonaLoop concept was deleted. Its only surviving use is the one roadmap sentence
 > in §10 — you need nothing else from it.)*
 

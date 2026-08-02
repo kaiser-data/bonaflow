@@ -4,7 +4,7 @@
 
 Built for the 8x × Bella & Bona Mobile Hack at Delta Campus Berlin. BonaFlow combines direct 1–5 star ratings with voice explanations, turns real meal feedback into menu signals, and returns an instant demo voucher after a valid response is saved. The same PWA also connects Guest, Staff, and Operations views to one live event state.
 
-[Guest](https://bonaflow.vercel.app/guest) · [Staff](https://bonaflow.vercel.app/staff) · [Operations](https://bonaflow.vercel.app/ops) · [Feedback](https://bonaflow.vercel.app/feedback) · [Two-slide deck](docs/slides/exports/bonaflow-build-approaches.pdf) · [Editable presentation](docs/slides/bonaflow-build-approaches.html)
+[Guest](https://bonaflow.vercel.app/guest) · [Staff](https://bonaflow.vercel.app/staff) · [Operations](https://bonaflow.vercel.app/ops) · [Feedback](https://bonaflow.vercel.app/feedback) · [Two-slide deck](docs/slides/exports/bonaflow-build-approaches.pdf) · [Portfolio media](assets/portfolio/README.md) · [Project docs](docs/README.md)
 
 `Next.js 15` `React 19` `TypeScript` `Supabase` `Vercel` `PWA` `Nebius` `ElevenLabs`
 
@@ -123,6 +123,17 @@ The first approach explored a native-style app with Bilt; the final demo moved t
 | Delivery | GitHub, Vercel, PWA manifest and service worker | Deployment, QR-to-browser access, installation, and offline shell |
 | Verification | Vitest, TypeScript, Next.js production build | Focused domain tests and release checks |
 
+## Portfolio resources
+
+| Resource | Contents |
+| --- | --- |
+| [LinkedIn media kit](assets/portfolio/README.md) | Six ordered carousel images plus clearly named event photography |
+| [Pitch materials](docs/pitch/) | Project pitch and stage script |
+| [Presentation deck](docs/slides/) | Editable two-slide HTML deck, screenshots, and PDF/PNG exports |
+| [Demo runbook](docs/demo/) | Acceptance checklist and hackathon handoff notes |
+| [Field guide](docs/field-guide/) | Printable PDF and editable HTML source |
+| [Build prompts](docs/prompts/) | Preserved Bilt, PWA, and master implementation prompts |
+
 ## Try the live demo
 
 | View | Live route | Purpose |
@@ -228,7 +239,10 @@ src/domain/          Types, validation, recommendations, mutations, and seed dat
 src/hooks/           Cross-device state polling
 src/server/          Persistence and provider adapters
 supabase/setup.sql   Database bootstrap
-docs/slides/         Presentation source, screenshots, and exports
+assets/dishes/       Source dish photography and attribution
+assets/portfolio/    LinkedIn carousel and event photography
+data/                Reference seed data used during prototyping
+docs/                Demo, pitch, field guide, prompts, slides, and development archive
 public/              PWA icons, dish images, service worker, and production QR
 archive/bilt-app     Separate Git branch containing the Bilt prototype
 ```

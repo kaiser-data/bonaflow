@@ -37,7 +37,7 @@ hour if you find them at 15:30. Three ways to see the app:
 ## Dish images — real Bella&Bona dishes, repo is public
 
 The five **real dishes** photographed at lunch live in `assets/dishes/`, paired with a photo of
-each bowl's printed label. Declared allergens are in `seed-real-dishes.json`. Ten CC-licensed
+each bowl's printed label. Declared allergens are in `data/seed-real-dishes.json`. Ten CC-licensed
 placeholders are still there as backup.
 
 **The repo is public**, so the raw URLs work (verified 200). But **uploading the folder to Bilt
@@ -667,4 +667,4 @@ also gets you cross-platform for free — Android Chrome and iOS Safari both giv
 though **iOS Safari records to mp4/aac rather than webm**, so the same "don't hardcode the mime
 type" rule applies there too.
 
-Full spec and demo script: `BONAFLOW-MASTER-PROMPT.md`.
+Full spec and demo script: `docs/prompts/BONAFLOW-MASTER-PROMPT.md`.

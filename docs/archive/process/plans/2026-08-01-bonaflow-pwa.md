@@ -223,7 +223,7 @@ Expected: FAIL because the domain modules do not exist.
 
 - [ ] **Step 3: Implement the typed seed and minimal pure functions**
 
-`types.ts` defines the exact enums from the design and prompt, including `DietFilter = "all" | "vegan" | "vegetarian" | "gluten_free" | "halal"`, station dish placements, alerts, tasks, incentives, the operational extraction schema, `FeedbackExtraction`, and `FeedbackRecord`. `BonaFlowState.feedback` is an initially empty array. `seed.ts` transcribes the four stations and five dishes from `PWA-CODEX-PROMPT.md` and exports a deeply immutable `SEED_STATE` value.
+`types.ts` defines the exact enums from the design and prompt, including `DietFilter = "all" | "vegan" | "vegetarian" | "gluten_free" | "halal"`, station dish placements, alerts, tasks, incentives, the operational extraction schema, `FeedbackExtraction`, and `FeedbackRecord`. `BonaFlowState.feedback` is an initially empty array. `seed.ts` transcribes the four stations and five dishes from `docs/prompts/PWA-CODEX-PROMPT.md` and exports a deeply immutable `SEED_STATE` value.
 
 `validateExtraction` checks all enums, confidence range, exact station/dish membership, and that the selected dish is placed at the selected station. `applyExtraction` starts from `structuredClone(state)`, performs the mandated update order, creates deterministic ids from the supplied timestamp plus collection length, strips any incentive-like model content, and recomputes `recommendations`. `resetState` returns `structuredClone(SEED_STATE)`. `recommendStation` filters to available matching placements, excludes `excludeStationId`, and sorts with `low < medium < high < unknown`.
 
