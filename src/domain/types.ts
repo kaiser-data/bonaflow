@@ -8,6 +8,7 @@ export type DietTag =
   | "halal"
   | "high_protein";
 export type DietFilter = "all" | "vegan" | "vegetarian" | "gluten_free" | "halal";
+export type DishRating = 1 | 2 | 3 | 4 | 5;
 export type IssueType =
   | "low_stock"
   | "sold_out"
@@ -88,8 +89,16 @@ export type FeedbackExtraction = {
 
 export type FeedbackRecord = FeedbackExtraction & {
   id: string;
+  rating?: DishRating;
   transcript: string;
   createdAt: string;
+};
+
+export type DemoVoucher = {
+  eventId: string;
+  title: "Free coffee on the Terrace";
+  code: "BONAFLOW-DEMO";
+  terms: "One demo voucher per browser · Hackathon prototype";
 };
 
 export type Extraction = {

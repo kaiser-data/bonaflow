@@ -1,19 +1,31 @@
 import { NextResponse } from "next/server";
-import { appendFeedback, validateFeedbackExtraction } from "@/domain/feedback";
+import {
+  appendFeedback,
+  validateDishRating,
+  validateFeedbackExplanation,
+  validateFeedbackExtraction,
+} from "@/domain/feedback";
 import { getStateRepository } from "@/server/state-repository";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { extraction?: unknown; transcript?: string };
+    const body = (await request.json()) as {
+      extraction?: unknown;
+      transcript?: unknown;
+      rating?: unknown;
+    };
     const repository = getStateRepository();
     const current = await repository.get();
     const extraction = validateFeedbackExtraction(body.extraction, current);
+    const rating = validateDishRating(body.rating);
+    const transcript = validateFeedbackExplanation(body.transcript);
     const next = appendFeedback(
       current,
       extraction,
-      body.transcript?.trim() ?? "",
+      rating,
+      transcript,
       `feedback-${crypto.randomUUID()}`,
       new Date().toISOString(),
     );

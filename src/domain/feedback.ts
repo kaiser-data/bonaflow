@@ -1,5 +1,6 @@
 import type {
   BonaFlowState,
+  DishRating,
   FeedbackExtraction,
   FeedbackRecord,
 } from "./types";
@@ -12,6 +13,22 @@ const reasonValues = new Set([
   "other",
   "unknown",
 ]);
+
+export function validateDishRating(value: unknown): DishRating {
+  if (!Number.isInteger(value) || Number(value) < 1 || Number(value) > 5) {
+    throw new Error("Rating must be an integer from 1 to 5.");
+  }
+  return value as DishRating;
+}
+
+export function validateFeedbackExplanation(value: unknown): string {
+  if (typeof value !== "string" || value.trim().length < 5) {
+    throw new Error(
+      "Feedback explanation must contain at least five characters.",
+    );
+  }
+  return value.trim();
+}
 
 export function validateFeedbackExtraction(
   value: unknown,
@@ -104,14 +121,17 @@ export function formatFeedbackSummary(
 export function appendFeedback(
   state: BonaFlowState,
   extraction: FeedbackExtraction,
+  rating: DishRating,
   transcript: string,
   id: string,
   now: string,
 ): BonaFlowState {
   const validated = validateFeedbackExtraction(extraction, state);
+  const validatedRating = validateDishRating(rating);
   const record: FeedbackRecord = {
     id,
     ...validated,
+    rating: validatedRating,
     transcript,
     createdAt: now,
   };
