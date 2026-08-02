@@ -1,7 +1,9 @@
 # BonaFlow Build-Approach Comparison Slides
 
-**Date:** 2 August 2026  
-**Status:** Approved for specification  
+**Date:** 2 August 2026
+
+**Status:** Approved for specification
+
 **Format:** Two 16:9 HTML slides, exportable to PDF and PNG
 
 ## Purpose
