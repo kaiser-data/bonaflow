@@ -29,8 +29,15 @@ export default function HomePage() {
         <div className="brand-mark">B</div>
         <span className="eyebrow">8X × BELLA &amp; BONA · BERLIN</span>
         <h1>BonaFlow</h1>
-        <p>Find food faster. Keep every station flowing.</p>
+        <p>RATE FOOD. GET REWARDS.</p>
       </header>
+      <Link className="reward-cta" href="/feedback">
+        <span>
+          <strong>Rate your meal</strong>
+          <small>Stars + real voice feedback → instant demo voucher</small>
+        </span>
+        <span className="direction-arrow" aria-hidden="true">→</span>
+      </Link>
       <section className="mode-grid" aria-label="Choose a mode">
         {modes.map((mode) => (
           <Link href={mode.href} className="mode-card" key={mode.href}>
@@ -43,16 +50,13 @@ export default function HomePage() {
           </Link>
         ))}
       </section>
-      <Link className="feedback-link" href="/feedback">
-        Share meal feedback
-      </Link>
-      <section className="projector-qr" aria-label="Scan to open Guest View">
+      <section className="projector-qr" aria-label="Scan to rate food and get a demo reward">
         <span className="eyebrow">SCAN TO JOIN</span>
-        {/* Generated for https://bonaflow.vercel.app/guest and stored locally. */}
+        {/* Generated for https://bonaflow.vercel.app/feedback and stored locally. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/guest-qr.png" alt="QR code for the BonaFlow Guest View" />
-        <h2>Scan to open Guest View</h2>
-        <a href="https://bonaflow.vercel.app/guest">bonaflow.vercel.app/guest</a>
+        <img src="/feedback-qr.png" alt="QR code for the BonaFlow rated feedback and demo reward flow" />
+        <h2>Rate food. Get your demo reward.</h2>
+        <a href="https://bonaflow.vercel.app/feedback">bonaflow.vercel.app/feedback</a>
       </section>
       <Disclaimer />
     </main>

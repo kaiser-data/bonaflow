@@ -534,6 +534,35 @@ a {
   text-underline-offset: 4px;
 }
 
+.reward-cta {
+  display: flex;
+  min-height: 92px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 19px 20px;
+  border-radius: 20px;
+  background: #19312f;
+  color: #fff;
+  box-shadow: 0 14px 34px rgb(25 49 47 / 18%);
+}
+
+.reward-cta > span:first-child {
+  display: grid;
+  gap: 5px;
+}
+
+.reward-cta strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.45rem;
+  font-weight: 500;
+}
+
+.reward-cta small {
+  color: #d4ded9;
+  line-height: 1.35;
+}
+
 .qr-placeholder {
   display: grid;
   min-height: 180px;
