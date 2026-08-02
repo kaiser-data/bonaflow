@@ -17,7 +17,8 @@ The presentation should frame the approaches as complementary rather than as a c
 
 - The live React PWA is the only source for screenshots produced in this repository.
 - The Bilt implementation remains unchanged on `archive/bilt-app` and is used only as a factual reference.
-- The user will supply a Bilt screenshot separately. The deck must include a clearly labelled placeholder that can be replaced without redesigning the slide.
+- The user supplied `Bilt_App.png`. Preserve the pixels unchanged, move it into the slide asset folder as `bilt-screenshot.png`, and frame it through CSS around Bilt's preview, QR, and publishing controls. The composition must crop out the early prototype's rating/reward message so it does not contradict the final product direction.
+- The deck must retain a clearly labelled fallback placeholder so the Bilt image can be removed or replaced without redesigning the slide.
 - No Bilt component, Expo dependency, rating system, reward system, or backend code is merged into `main` for this deliverable.
 - No production application behavior changes are part of the slide task.
 
@@ -100,6 +101,7 @@ Footer conclusion: **Prototype fast, validate with users, then choose PWA or app
 - `docs/slides/assets/react-staff.png`
 - `docs/slides/assets/react-ops.png`
 - `docs/slides/assets/react-feedback.png`
+- `docs/slides/assets/bilt-screenshot.png` — the unchanged user-supplied Bilt capture
 - `docs/slides/assets/bilt-placeholder.svg` — replaceable user-supplied screenshot placeholder
 - A short export note describing how to print the HTML deck to PDF or capture individual slides as PNGs
 
@@ -107,7 +109,7 @@ Footer conclusion: **Prototype fast, validate with users, then choose PWA or app
 
 - Exactly two 16:9 slides.
 - Only the React application is captured by Codex.
-- The Bilt screenshot area is clearly marked as user-supplied.
+- The Bilt screenshot is clearly marked as user-supplied and visually framed around the integrated preview, QR, and publishing workflow.
 - Bilt is presented positively as a rapid-prototyping tool, with Expo Go identified as the preview-distribution blocker.
 - The React PWA is presented as the direct QR-to-browser distribution path.
 - The architecture accurately reflects the current repository: Next.js, React, Vercel, Supabase, Nebius, ElevenLabs, deterministic fallbacks, GitHub, and PWA assets.
