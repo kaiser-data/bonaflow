@@ -1,8 +1,8 @@
 # BonaFlow
 
-**A mobile-first live catering navigator that turns staff reports into guest guidance and operational action.**
+**RATE FOOD. GET REWARDS.**
 
-Built for the 8x × Bella & Bona Mobile Hack at Delta Campus Berlin. BonaFlow connects four browser-based views to one shared event state, so a shortage reported on one phone changes recommendations on another within one polling interval.
+Built for the 8x × Bella & Bona Mobile Hack at Delta Campus Berlin. BonaFlow combines direct 1–5 star ratings with voice explanations, turns real meal feedback into menu signals, and returns an instant demo voucher after a valid response is saved. The same PWA also connects Guest, Staff, and Operations views to one live event state.
 
 [Guest](https://bonaflow.vercel.app/guest) · [Staff](https://bonaflow.vercel.app/staff) · [Operations](https://bonaflow.vercel.app/ops) · [Feedback](https://bonaflow.vercel.app/feedback) · [Two-slide deck](docs/slides/exports/bonaflow-build-approaches.pdf) · [Editable presentation](docs/slides/bonaflow-build-approaches.html)
 
@@ -15,9 +15,9 @@ Built for the 8x × Bella & Bona Mobile Hack at Delta Campus Berlin. BonaFlow co
 - Guests cannot see which station still has suitable food or the shorter queue.
 - Staff observations stay local unless reporting is faster than finding an operations lead.
 - Operations needs alerts, tasks, and redirect controls—not a passive dashboard.
-- Leftover observations should inform the next event without ambiguous ratings or paid-feedback bias.
+- A star alone cannot explain *why* food was left; voice or text adds the operationally useful reason.
 
-One shared event state connects Guest, Staff, Operations, and anonymous Feedback views. BonaFlow moves people during the event, then turns leftover observations into planning signals for the next one.
+One shared event state connects Guest, Staff, Operations, and Feedback views. BonaFlow moves people during the event, then combines comparable ratings with guests’ own words to improve the next one.
 
 ## One shared operational loop
 
@@ -27,7 +27,7 @@ One shared event state connects Guest, Staff, Operations, and anonymous Feedback
 4. **Apply:** Pure TypeScript functions update station status, alerts, tasks, counters, and eligible recommendations before the repository persists the next state.
 5. **Synchronize:** Guest and Operations views receive the shared state on the next three-second poll.
 
-Feedback is deliberately isolated from that loop. Anonymous leftover observations append to a separate `feedback` array; the feedback route verifies that no operational field changed, and submission never unlocks a redirect or incentive.
+The reward path is deliberately isolated from operations. A guest selects a dish and stars directly, then explains the rating by voice or text. Nebius suggests a leftover interpretation, code validates it, and the API appends a rated feedback record. Only after Supabase persistence succeeds does application code return the fixed `BONAFLOW-DEMO` voucher. The write cannot change stations, alerts, tasks, recommendations, or the separate operations-controlled redirect incentive.
 
 ## Architecture
 
@@ -37,7 +37,7 @@ flowchart LR
         Guest[Guest]
         Staff[Staff]
         Ops[Operations]
-        Feedback[Feedback]
+        Feedback[Rated voice feedback]
     end
 
     Guest --> Next[Next.js 15 on Vercel]
@@ -53,9 +53,11 @@ flowchart LR
     Validate --> Rules[Pure mutations and deterministic recommendations]
     Rules --> State[(Supabase bonaflow_state/live)]
     State --> Next
+    Next --> Reward[Code-owned demo voucher]
+    Reward --> Feedback
 ```
 
-**Nebius proposes; application code validates and decides.** ElevenLabs and Nebius are called only from server routes and never write operational state directly.
+**Nebius proposes; application code validates and decides.** The star value is direct guest input, and the voucher definition is owned by code. ElevenLabs and Nebius are called only from server routes and never write operational state or choose a reward.
 
 ## Engineering decisions
 
@@ -67,7 +69,8 @@ flowchart LR
 | **Repository boundary** | Persistence sits behind one interface: Supabase supports cross-device state, while a non-durable memory repository keeps local development usable. |
 | **Polling over sockets** | A three-second polling loop is simple, observable, and recovers naturally on unreliable event Wi-Fi. The last successful state remains visible when a poll fails. |
 | **Graceful degradation** | Text input is always available. Missing model credentials use deterministic interpretation; unavailable voice keeps the visible text path. |
-| **Feedback isolation** | Feedback adds anonymous leftover facts only. It cannot modify stations, alerts, tasks, redirects, or incentives. |
+| **Feedback isolation** | Rated feedback appends one record and returns a fixed voucher only after persistence. It cannot modify stations, alerts, tasks, redirects, or incentives. |
+| **Voice explains the score** | Stars create a comparable distribution; required voice or text preserves the guest’s reason instead of asking Operations to guess. |
 | **Server-only secrets** | Supabase service-role and provider keys are read only inside server code and are never shipped to the browser. |
 
 ## Product surfaces
@@ -85,14 +88,14 @@ flowchart LR
     <tr>
       <td align="center"><img src="docs/slides/assets/react-guest.png" width="200" alt="BonaFlow Guest view showing catering stations, availability, and queue guidance"></td>
       <td align="center"><img src="docs/slides/assets/react-staff.png" width="200" alt="BonaFlow Staff view with station reporting and quick actions"></td>
-      <td align="center"><img src="docs/slides/assets/react-ops.png" width="200" alt="BonaFlow Operations view with station status, alerts, and tasks"></td>
-      <td align="center"><img src="docs/slides/assets/react-feedback.png" width="200" alt="BonaFlow anonymous leftover feedback view"></td>
+      <td align="center"><img src="docs/slides/assets/react-ops.png" width="200" alt="BonaFlow Operations view with live state and rated feedback analytics"></td>
+      <td align="center"><img src="docs/slides/assets/react-feedback.png" width="200" alt="BonaFlow star rating and voice feedback reward view"></td>
     </tr>
     <tr>
       <td><strong>Dietary fit and live guidance.</strong> Availability, queues, eligible redirects, and announcements.</td>
       <td><strong>Fast, accountable reporting.</strong> One-tap actions plus editable voice or text confirmation.</td>
-      <td><strong>A live floor view.</strong> Stations, alerts, replenishment tasks, redirect control, and leftover signals.</td>
-      <td><strong>Unbiased menu signals.</strong> Anonymous leftover amount and reason capture with no rating or reward.</td>
+      <td><strong>A live floor view.</strong> Stations, alerts, tasks, redirect control, star distribution, reasons, and leftovers.</td>
+      <td><strong>Rate food. Explain why.</strong> Direct stars plus required voice/text feedback and an instant demo voucher.</td>
     </tr>
   </tbody>
 </table>
@@ -115,7 +118,7 @@ The first approach explored a native-style app with Bilt; the final demo moved t
 | Server | Next.js route handlers, Zod | Secret-safe provider calls, request handling, schema validation |
 | State transitions | Pure TypeScript domain functions | Deterministic mutations, reset behavior, and eligible recommendations |
 | Persistence | Supabase Postgres JSON state | Shared `bonaflow_state/live` record across devices |
-| AI interpretation | Nebius through an OpenAI-compatible client | Strict structured suggestions for staff reports and leftover feedback |
+| AI interpretation | Nebius through an OpenAI-compatible client | Strict leftover suggestions; never infers stars or selects rewards |
 | Voice | ElevenLabs | Speech-to-text and bilingual announcement audio |
 | Delivery | GitHub, Vercel, PWA manifest and service worker | Deployment, QR-to-browser access, installation, and offline shell |
 | Verification | Vitest, TypeScript, Next.js production build | Focused domain tests and release checks |
@@ -127,13 +130,28 @@ The first approach explored a native-style app with Bilt; the final demo moved t
 | Guest | [bonaflow.vercel.app/guest](https://bonaflow.vercel.app/guest) | Find suitable available dishes, compare queues, and follow live redirects. |
 | Staff | [bonaflow.vercel.app/staff](https://bonaflow.vercel.app/staff) | Report shortages, queues, closures, or resolutions with quick actions, text, or voice. |
 | Operations | [bonaflow.vercel.app/ops](https://bonaflow.vercel.app/ops) | Monitor the floor, resolve tasks, control redirects, review leftovers, and reset the demo. |
-| Feedback | [bonaflow.vercel.app/feedback](https://bonaflow.vercel.app/feedback) | Submit anonymous leftover amount and reason data without a score or incentive. |
+| Feedback | [bonaflow.vercel.app/feedback](https://bonaflow.vercel.app/feedback) | Rate a dish, explain it by voice or text, and receive the fixed demo voucher after persistence. |
 
-Scan to open the canonical Guest route:
+Choose a journey:
 
-<p align="center">
-  <img src="public/guest-qr.png" width="180" alt="QR code opening the live BonaFlow Guest view">
-</p>
+<table>
+  <thead><tr><th align="center">Rate + reward</th><th align="center">Live station guide</th></tr></thead>
+  <tbody>
+    <tr>
+      <td align="center"><img src="public/feedback-qr.png" width="180" alt="QR code opening BonaFlow rated feedback and demo rewards"></td>
+      <td align="center"><img src="public/guest-qr.png" width="180" alt="QR code opening the live BonaFlow Guest view"></td>
+    </tr>
+    <tr><td align="center"><code>/feedback</code></td><td align="center"><code>/guest</code></td></tr>
+  </tbody>
+</table>
+
+### Rated-feedback acceptance flow
+
+1. Scan **Rate + reward**, select a closed-list dish, and choose 1–5 stars.
+2. Record a voice explanation or use the typed alternative; at least five characters are required.
+3. Review the plain interpretation sentence. The selected stars remain direct guest input.
+4. Confirm the feedback. After persistence, the app displays code **`BONAFLOW-DEMO`** for a free demo coffee on the Terrace.
+5. Refresh to see the event-scoped voucher restored in the same browser.
 
 ### Cross-device acceptance flow
 
@@ -176,12 +194,17 @@ npm run typecheck
 npm run build
 ```
 
-The deliberately small Vitest suite protects the four demo-critical domain behaviors:
+The focused Vitest suite currently protects 14 demo-critical behaviors across four files, including:
 
 - closed-set validation rejects invented station or dish IDs;
 - applying a report updates status, alert, task, and counter in sequence;
 - reset restores the seed state exactly;
-- recommendation ranking prefers the lower queue and excludes the current station.
+- recommendation ranking prefers the lower queue and excludes the current station;
+- ratings accept only integer values from one through five and require a substantive explanation;
+- rated feedback changes only the feedback collection;
+- voucher construction and browser restoration fail safely;
+- persistence failure returns no reward result; and
+- Operations averages only valid ratings while retaining legacy leftover/reason signals.
 
 Type checking and the production build cover the application boundary around those rules.
 
@@ -189,10 +212,11 @@ Type checking and the production build cover the application boundary around tho
 
 `main` is connected from GitHub to Vercel. A push triggers the Next.js deployment; Vercel provides the canonical browser routes and installable PWA shell, while Supabase holds the shared event state.
 
-Configure the same environment names from `.env.example` in Vercel project settings. Keep the Supabase service-role key and optional Nebius and ElevenLabs credentials server-only—never commit `.env.local`, provider keys, or deployment tokens. After changing the canonical domain, regenerate `public/guest-qr.png`:
+Configure the same environment names from `.env.example` in Vercel project settings. Keep the Supabase service-role key and optional Nebius and ElevenLabs credentials server-only—never commit `.env.local`, provider keys, or deployment tokens. After changing the canonical domain, regenerate both QR assets:
 
 ```bash
 npx qrcode -o public/guest-qr.png -w 1200 -m 2 "https://bonaflow.vercel.app/guest"
+npx qrcode -o public/feedback-qr.png -w 1200 -m 2 "https://bonaflow.vercel.app/feedback"
 ```
 
 ## Repository map
@@ -215,12 +239,14 @@ archive/bilt-app     Separate Git branch containing the Bilt prototype
 - Station layout, queue levels, availability, and operations data are simulated for the demo.
 - Provider-assisted features depend on optional credentials and fall back to deterministic interpretation or visible text.
 - The JSON state record is intentionally simple; it is not yet a multi-event relational operations model.
+- The voucher is a hackathon demo reward. One-per-event limiting uses browser storage and can be bypassed by clearing site data or calling the endpoint directly; it is not production fraud prevention.
 
 ## Roadmap
 
 - Add authenticated staff and operations roles with tenant-specific events.
 - Move from one live blob to event history, audit records, and concurrency-aware writes.
 - Expand leftover and traffic analytics into planning recommendations across events.
+- Add authenticated reward campaigns, unique codes, redemption status, and abuse controls if user validation supports the model.
 - Validate PWA adoption before considering native App Store and Google Play packaging.
 
 ---
