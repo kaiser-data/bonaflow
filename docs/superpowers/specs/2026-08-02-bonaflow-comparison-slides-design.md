@@ -26,7 +26,7 @@ The presentation should frame the approaches as complementary rather than as a c
 
 Use BonaFlow's existing warm off-white, deep green, pink accent, rounded-card language, and typography. Slides must remain readable on a projector: large type, short claims, strong contrast, and no dense implementation screenshots.
 
-React screenshots should be captured from the canonical production deployment at desktop dimensions while emulating a modern mobile viewport. Each screenshot must show the app itself without browser chrome and use current production data. Sensitive configuration and developer tooling must never appear.
+React screenshots should be captured from the canonical production deployment at desktop dimensions while emulating a wide modern mobile viewport. Use 480 CSS pixels so the production interface's two-column staff and operations controls are not horizontally cropped. Each screenshot must show the app itself without browser chrome and use current production data. Sensitive configuration and developer tooling must never appear.
 
 ## Slide 1 — Two Paths: Prototype and Distribution
 

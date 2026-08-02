@@ -16,7 +16,7 @@
 - The user supplied `Bilt_App.png`; move it unchanged to `assets/bilt-screenshot.png`, crop it only through CSS around Bilt's preview/QR/publishing controls, and fall back automatically to `assets/bilt-placeholder.svg` if it is later removed.
 - Do not mutate or reset production data for screenshots.
 - Use the current production state after waiting six virtual seconds for each page to load.
-- Use identical 430×932 CSS-pixel mobile viewports and 2× device scale for every React screenshot.
+- Use identical 480×932 CSS-pixel mobile viewports and 2× device scale for every React screenshot; 480 pixels preserves the production app's two-column controls without horizontal cropping.
 - Do not add npm dependencies, Playwright browsers, application routes, or build configuration.
 - Do not introduce ratings, rewards, feedback vouchers, or claims that Bilt code was merged into the PWA.
 - Use BonaFlow's existing warm off-white, deep green, pink accent, rounded cards, and high-contrast projector typography.
@@ -83,7 +83,7 @@ capture() {
     --disable-gpu \
     --hide-scrollbars \
     --force-device-scale-factor=2 \
-    --window-size=430,932 \
+    --window-size=480,932 \
     --virtual-time-budget=6000 \
     --screenshot="$asset_dir/$output" \
     "$capture_base_url$route"
