@@ -58,6 +58,7 @@
 - Modify: `src/domain/feedback.ts`
 - Create: `src/domain/rewards.ts`
 - Create: `src/domain/feedback.test.ts`
+- Modify: `src/app/api/feedback/route.ts`
 
 **Interfaces:**
 - Consumes: existing `FeedbackExtraction`, `FeedbackRecord`, `BonaFlowState`, and `appendFeedback` behavior.
@@ -201,6 +202,8 @@ export function validateFeedbackExplanation(value: unknown): string {
 
 Change `appendFeedback` to accept `rating: DishRating` between `extraction` and `transcript`, validate it again, and set `rating` on the new record. Keep its `structuredClone` and append-only behavior.
 
+Update the existing feedback route in the same step so the tree remains type-safe: add `rating?: unknown` to the parsed body, call `validateDishRating(body.rating)` and `validateFeedbackExplanation(body.transcript)`, and pass those validated values to the new `appendFeedback` signature. The route still returns only `{ ok, feedbackCount }` until Task 2 adds the persistence-before-voucher service.
+
 - [ ] **Step 5: Implement fixed reward and storage helpers**
 
 Create `src/domain/rewards.ts` with a narrow storage interface so it remains testable without a browser environment:
@@ -260,14 +263,15 @@ Run:
 
 ```bash
 npx vitest run src/domain/feedback.test.ts src/domain/bonaflow.test.ts
+npm run typecheck
 ```
 
-Expected: both test files pass.
+Expected: both test files and type checking pass.
 
 - [ ] **Step 7: Commit the domain contract**
 
 ```bash
-git add src/domain/types.ts src/domain/feedback.ts src/domain/rewards.ts src/domain/feedback.test.ts
+git add src/domain/types.ts src/domain/feedback.ts src/domain/rewards.ts src/domain/feedback.test.ts src/app/api/feedback/route.ts
 git commit -m "feat: add rated feedback reward contract"
 ```
 
@@ -286,14 +290,29 @@ git commit -m "feat: add rated feedback reward contract"
 
 - [ ] **Step 1: Write failing service tests**
 
-Create `src/server/feedback-service.test.ts` with a valid input containing `rating: 4`, the Task 1 extraction, and a substantive transcript. Use `vi.fn()` repository methods and assert:
+Create `src/server/feedback-service.test.ts` with a valid input containing `rating: 4`, the Task 1 extraction, and a substantive transcript. Use this stateful in-memory repository double so the test observes real state rather than asserting on a mock:
 
 ```ts
+class TestRepository {
+  state = structuredClone(SEED_STATE);
+  replaced: BonaFlowState | null = null;
+
+  async get() {
+    return structuredClone(this.state);
+  }
+
+  async replace(state: BonaFlowState) {
+    this.replaced = structuredClone(state);
+    this.state = structuredClone(state);
+    return structuredClone(state);
+  }
+}
+
+const repository = new TestRepository();
 const result = await submitRatedFeedback(repository, input, "feedback-1", now);
-expect(repository.replace).toHaveBeenCalledOnce();
 expect(result.voucher.code).toBe("BONAFLOW-DEMO");
 expect(result.feedbackCount).toBe(1);
-expect(replacedState.feedback[0].rating).toBe(4);
+expect(repository.replaced?.feedback[0].rating).toBe(4);
 ```
 
 Add two failure cases:
@@ -302,7 +321,7 @@ Add two failure cases:
 await expect(
   submitRatedFeedback(repository, { ...input, rating: 0 }, "feedback-1", now),
 ).rejects.toThrow(/rating/i);
-expect(repository.replace).not.toHaveBeenCalled();
+expect(repository.replaced).toBeNull();
 ```
 
 and a repository whose `replace` rejects with `new Error("write failed")`; assert the returned promise rejects and therefore exposes no voucher result.
