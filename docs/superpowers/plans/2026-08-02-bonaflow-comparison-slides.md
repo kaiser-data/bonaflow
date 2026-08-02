@@ -32,6 +32,7 @@
 - Create `docs/slides/README.md`: capture, replacement, viewing, and export instructions.
 - Create `docs/slides/assets/bilt-placeholder.svg`: visual fallback for the user's Bilt screenshot.
 - Move `Bilt_App.png` to `docs/slides/assets/bilt-screenshot.png`: unchanged user-supplied Bilt builder capture.
+- Move `bilt_logo.svg` to `docs/slides/assets/bilt-logo.svg`: unchanged user-supplied Bilt logo.
 - Generate `docs/slides/assets/react-guest.png`: production Guest view.
 - Generate `docs/slides/assets/react-staff.png`: production Staff view.
 - Generate `docs/slides/assets/react-ops.png`: production Operations view.

@@ -102,6 +102,7 @@ Footer conclusion: **Prototype fast, validate with users, then choose PWA or app
 - `docs/slides/assets/react-ops.png`
 - `docs/slides/assets/react-feedback.png`
 - `docs/slides/assets/bilt-screenshot.png` — the unchanged user-supplied Bilt capture
+- `docs/slides/assets/bilt-logo.svg` — the unchanged user-supplied Bilt logo
 - `docs/slides/assets/bilt-placeholder.svg` — replaceable user-supplied screenshot placeholder
 - A short export note describing how to print the HTML deck to PDF or capture individual slides as PNGs
 

@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BonaFlow — Build Approaches</title>
+  <style>
+    :root {
+      --paper: #f7f4ec;
+      --ink: #173b35;
+      --muted: #66736f;
+      --teal: #07857d;
+      --pink: #f5a6c5;
+      --orange: #fa8649;
+      --line: #d5ddd7;
+      --white: #fffefa;
+      --shadow: 0 22px 55px rgba(23, 59, 53, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #263e39; }
+    body {
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .deck { display: grid; gap: 28px; justify-content: center; padding: 28px; }
+    .slide {
+      position: relative;
+      width: 1600px;
+      height: 900px;
+      overflow: hidden;
+      padding: 52px 62px 46px;
+      background:
+        radial-gradient(circle at 93% 3%, rgba(245, 166, 197, 0.34), transparent 20%),
+        radial-gradient(circle at 2% 94%, rgba(7, 133, 125, 0.12), transparent 26%),
+        var(--paper);
+    }
+
+    .slide::after {
+      content: "";
+      position: absolute;
+      right: -76px;
+      bottom: -76px;
+      width: 210px;
+      height: 210px;
+      border: 30px solid var(--pink);
+      border-radius: 50%;
+      opacity: 0.68;
+    }
+
+    .topline { display: flex; align-items: center; justify-content: space-between; gap: 28px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      display: grid;
+      width: 48px;
+      height: 48px;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--white);
+      background: var(--ink);
+      font: 800 28px/1 Georgia, serif;
+    }
+    .brand strong { font-size: 24px; letter-spacing: -0.02em; }
+    .slide-number { color: var(--muted); font: 700 16px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.16em; }
+    .eyebrow { color: var(--muted); font: 800 15px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.18em; text-transform: uppercase; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { margin-top: 13px; font: 700 62px/0.98 Georgia, serif; letter-spacing: -0.045em; }
+    .subtitle { margin-top: 10px; color: var(--muted); font-size: 23px; line-height: 1.35; }
+
+    .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; margin-top: 28px; }
+    .approach-card {
+      position: relative;
+      height: 584px;
+      overflow: hidden;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 30px;
+      background: rgba(255, 254, 250, 0.94);
+      box-shadow: var(--shadow);
+    }
+    .approach-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 8px; background: var(--pink); }
+    .approach-card.pwa::before { background: var(--teal); }
+    .card-heading { display: flex; min-height: 44px; align-items: center; justify-content: space-between; gap: 18px; }
+    .card-heading h2 { font-size: 27px; letter-spacing: -0.025em; }
+    .label {
+      flex: none;
+      padding: 8px 12px;
+      border-radius: 999px;
+      color: var(--ink);
+      background: var(--pink);
+      font: 800 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: 0.09em;
+    }
+    .pwa .label { color: white; background: var(--teal); }
+    .bilt-logo { width: 95px; height: auto; }
+    .approach-content { display: grid; grid-template-columns: 286px 1fr; gap: 24px; margin-top: 17px; align-items: start; }
+    .preview-frame {
+      position: relative;
+      width: 286px;
+      height: 435px;
+      overflow: hidden;
+      border: 10px solid #14201e;
+      border-radius: 30px;
+      background: #18181f;
+      box-shadow: 0 16px 32px rgba(23, 59, 53, 0.18);
+    }
+    .preview-frame::before { content: ""; position: absolute; z-index: 3; top: 7px; left: 50%; width: 72px; height: 9px; transform: translateX(-50%); border-radius: 10px; background: rgba(255,255,255,.28); }
+    .bilt-window img { position: absolute; top: -74px; right: -56px; width: auto; height: 560px; max-width: none; }
+    .bilt-window img.is-placeholder { inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .phone-frame img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+    .bullet-block { padding-top: 5px; }
+    .bullet-block h3 { font: 700 28px/1.05 Georgia, serif; letter-spacing: -0.025em; }
+    .bullet-block p { margin-top: 8px; color: var(--muted); font-size: 16px; line-height: 1.35; }
+    .bullet-block ul { display: grid; gap: 11px; margin: 20px 0 0; padding: 0; list-style: none; }
+    .bullet-block li { position: relative; padding-left: 22px; font-size: 17px; font-weight: 650; line-height: 1.25; }
+    .bullet-block li::before { content: ""; position: absolute; top: 0.46em; left: 0; width: 9px; height: 9px; border-radius: 50%; background: var(--pink); }
+    .pwa .bullet-block li::before { background: var(--teal); }
+    .tradeoff { margin-top: 19px; padding: 12px 14px; border-radius: 14px; color: #8a411e; background: #fff0e7; font-size: 15px; font-weight: 750; line-height: 1.3; }
+    .conclusion {
+      position: absolute;
+      z-index: 4;
+      right: 62px;
+      bottom: 25px;
+      left: 62px;
+      text-align: center;
+      font: 700 20px/1.2 Georgia, serif;
+      letter-spacing: -0.01em;
+    }
+
+    .architecture-title h1 { max-width: 980px; font-size: 54px; }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 48px;
+      margin-top: 31px;
+    }
+    .flow-node {
+      position: relative;
+      min-height: 166px;
+      padding: 22px 22px 19px;
+      border: 1px solid var(--line);
+      border-top: 8px solid var(--teal);
+      border-radius: 24px;
+      background: rgba(255, 254, 250, 0.96);
+      box-shadow: 0 15px 34px rgba(23, 59, 53, 0.09);
+    }
+    .flow-node:nth-child(2) { border-top-color: var(--pink); }
+    .flow-node:nth-child(3) { border-top-color: var(--orange); }
+    .flow-node:nth-child(4) { border-top-color: var(--ink); }
+    .flow-node:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      top: 54px;
+      right: -39px;
+      color: var(--ink);
+      font: 800 29px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .node-index { color: var(--muted); font: 800 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .13em; }
+    .flow-node h2 { margin-top: 12px; font-size: 23px; line-height: 1.05; }
+    .flow-node p { margin-top: 10px; color: var(--muted); font-size: 15px; line-height: 1.35; }
+    .lower-grid { display: grid; grid-template-columns: 1.04fr .91fr 1.35fr; gap: 22px; margin-top: 24px; }
+    .service-stack { display: grid; gap: 12px; }
+    .service-card { display: grid; grid-template-columns: 42px 1fr; gap: 13px; align-items: center; padding: 15px 17px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255,254,250,.94); }
+    .service-icon { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 14px; color: white; background: var(--ink); font-weight: 900; }
+    .service-card.nebius .service-icon { background: #5d2fce; }
+    .service-card.eleven .service-icon { background: #111; }
+    .service-card h3 { font-size: 18px; }
+    .service-card p { margin-top: 3px; color: var(--muted); font-size: 13px; line-height: 1.25; }
+    .decision-card { padding: 21px; border-radius: 24px; color: white; background: var(--ink); }
+    .decision-card .eyebrow { color: #b8cbc5; }
+    .decision-card h2 { margin-top: 13px; font: 700 28px/1.12 Georgia, serif; }
+    .decision-card p { margin-top: 14px; color: #d9e4df; font-size: 15px; line-height: 1.45; }
+    .fallback { margin-top: 17px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.22); color: var(--pink); font-weight: 750; }
+    .screens-card { padding: 15px 16px 16px; border: 1px solid var(--line); border-radius: 24px; background: rgba(255,254,250,.94); }
+    .screens-card header { display: flex; align-items: center; justify-content: space-between; }
+    .screens-card h2 { font-size: 18px; }
+    .screen-row { display: flex; gap: 12px; margin-top: 12px; }
+    .mini-screen { position: relative; flex: 1; height: 256px; overflow: hidden; border: 5px solid var(--ink); border-radius: 18px; background: white; }
+    .mini-screen img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+    .mini-screen span { position: absolute; right: 7px; bottom: 7px; left: 7px; padding: 5px; border-radius: 8px; color: white; background: rgba(23,59,53,.91); text-align: center; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+    .architecture-footer { position: absolute; z-index: 4; right: 62px; bottom: 23px; left: 62px; display: flex; align-items: center; justify-content: space-between; gap: 30px; }
+    .architecture-footer strong { max-width: 1070px; font: 700 19px/1.2 Georgia, serif; }
+    .stack-line { color: var(--muted); font: 700 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em; white-space: nowrap; }
+
+    html[data-single-slide="1"] .slide:not([data-slide="1"]),
+    html[data-single-slide="2"] .slide:not([data-slide="2"]) { display: none; }
+    html[data-single-slide] .deck { gap: 0; padding: 0; }
+
+    @page { size: 16in 9in; margin: 0; }
+    @media print {
+      html, body { background: white; }
+      .deck { display: block; padding: 0; }
+      .slide { break-after: page; page-break-after: always; }
+      .slide:last-child { break-after: auto; page-break-after: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck">
+    <section class="slide slide-one" data-slide="1" aria-label="Two paths from prototype to distribution">
+      <div class="topline">
+        <div class="brand"><span class="brand-mark">B</span><strong>BonaFlow</strong></div>
+        <span class="slide-number">01 / 02</span>
+      </div>
+      <span class="eyebrow">Build fast. Distribute faster.</span>
+      <h1>Two useful paths, at different product stages.</h1>
+      <p class="subtitle">Bilt accelerates the prototype. A React PWA removes the audience-install barrier.</p>
+
+      <div class="comparison-grid">
+        <article class="approach-card bilt">
+          <div class="card-heading">
+            <img class="bilt-logo" src="assets/bilt-logo.svg" alt="Bilt">
+            <span class="label">RAPID PROTOTYPE</span>
+          </div>
+          <div class="approach-content">
+            <div class="preview-frame bilt-window">
+              <img
+                src="assets/bilt-screenshot.png"
+                onerror="this.onerror=null;this.classList.add('is-placeholder');this.src='assets/bilt-placeholder.svg'"
+                alt="User-supplied screenshot of the Bilt prototype builder"
+              >
+            </div>
+            <div class="bullet-block">
+              <h3>Prototype quickly</h3>
+              <p>Beginner-friendly, integrated and impressively mobile from the first iteration.</p>
+              <ul>
+                <li>Natural-language building</li>
+                <li>Integrated backend workflow</li>
+                <li>Native-quality experience</li>
+                <li>Guided QR sharing &amp; publishing</li>
+              </ul>
+              <div class="tradeoff">Trade-off: preview users still need Expo Go.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="approach-card pwa">
+          <div class="card-heading">
+            <h2>React + PWA</h2>
+            <span class="label">LIVE REACT PWA</span>
+          </div>
+          <div class="approach-content">
+            <div class="preview-frame phone-frame">
+              <img src="assets/react-guest.png" alt="BonaFlow Guest view running as a React PWA">
+            </div>
+            <div class="bullet-block">
+              <h3>Open instantly</h3>
+              <p>More engineering control, with direct access for every guest in the room.</p>
+              <ul>
+                <li>QR opens in the browser</li>
+                <li>Installable without a store release</li>
+                <li>Full validation &amp; integration control</li>
+                <li>GitHub → Vercel deployment</li>
+                <li>Built for event-wide reach</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+      </div>
+      <p class="conclusion">Bilt proves the experience. The PWA removes the distribution barrier.</p>
+    </section>
+
+    <section class="slide slide-two" data-slide="2" aria-label="How the React PWA is built">
+      <div class="topline">
+        <div class="brand"><span class="brand-mark">B</span><strong>BonaFlow</strong></div>
+        <span class="slide-number">02 / 02</span>
+      </div>
+      <div class="architecture-title">
+        <span class="eyebrow">How the React PWA is built</span>
+        <h1>A staff report becomes a trusted update on every phone.</h1>
+      </div>
+
+      <div class="flow" aria-label="BonaFlow architecture flow">
+        <article class="flow-node">
+          <span class="node-index">01 · ENTRY</span>
+          <h2>QR + phones</h2>
+          <p>Guest, staff and operations views. Voice, text and installable PWA access.</p>
+        </article>
+        <article class="flow-node">
+          <span class="node-index">02 · APP + API</span>
+          <h2>Next.js + Vercel</h2>
+          <p>React interface, server routes, API credentials and resilient fallbacks.</p>
+        </article>
+        <article class="flow-node">
+          <span class="node-index">03 · TRUST</span>
+          <h2>Code decides</h2>
+          <p>Closed IDs, validation, pure mutations and deterministic redirects.</p>
+        </article>
+        <article class="flow-node">
+          <span class="node-index">04 · SHARED STATE</span>
+          <h2>Supabase</h2>
+          <p>One event-state record, synchronized across every device in the room.</p>
+        </article>
+      </div>
+
+      <div class="lower-grid">
+        <div class="service-stack">
+          <article class="service-card nebius">
+            <span class="service-icon">N</span>
+            <div><h3>Nebius</h3><p>Model proposes → validation checks → code applies</p></div>
+          </article>
+          <article class="service-card eleven">
+            <span class="service-icon">11</span>
+            <div><h3>ElevenLabs</h3><p>Speech-to-text + bilingual announcements</p></div>
+          </article>
+          <article class="service-card">
+            <span class="service-icon">GH</span>
+            <div><h3>GitHub → Vercel</h3><p>Committed source and repeatable production deployment</p></div>
+          </article>
+        </div>
+
+        <article class="decision-card">
+          <span class="eyebrow">Model proposes. Code decides.</span>
+          <h2>AI never writes operational state directly.</h2>
+          <p>Suggested stations and dishes must remain inside the current closed set and pass deterministic eligibility checks.</p>
+          <p class="fallback">Failure path: keyword interpretation + visible text.</p>
+        </article>
+
+        <article class="screens-card">
+          <header><h2>One shared operational loop</h2><span class="eyebrow">LIVE</span></header>
+          <div class="screen-row">
+            <div class="mini-screen"><img src="assets/react-staff.png" alt="Staff reporting view"><span>Staff</span></div>
+            <div class="mini-screen"><img src="assets/react-ops.png" alt="Operations dashboard"><span>Operations</span></div>
+            <div class="mini-screen"><img src="assets/react-feedback.png" alt="Anonymous feedback view"><span>Feedback</span></div>
+          </div>
+        </article>
+      </div>
+
+      <footer class="architecture-footer">
+        <strong>Prototype fast, validate with users, then choose PWA or app-store distribution based on reach.</strong>
+        <span class="stack-line">NEXT.JS · REACT · VERCEL · SUPABASE · NEBIUS · ELEVENLABS</span>
+      </footer>
+    </section>
+  </main>
+  <script>
+    const requested = new URLSearchParams(window.location.search).get("slide");
+    if (requested) document.documentElement.dataset.singleSlide = requested;
+  </script>
+</body>
+</html>

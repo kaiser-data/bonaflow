@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 932" role="img" aria-labelledby="title description">
+  <title id="title">Bilt screenshot placeholder</title>
+  <desc id="description">Replace this image with the user-supplied Bilt screenshot.</desc>
+  <rect width="430" height="932" rx="36" fill="#f7f4ec"/>
+  <rect x="28" y="28" width="374" height="876" rx="28" fill="none" stroke="#173b35" stroke-width="4" stroke-dasharray="14 12"/>
+  <rect x="80" y="300" width="270" height="104" rx="52" fill="#5e20d7"/>
+  <text x="215" y="367" text-anchor="middle" font-family="Arial, sans-serif" font-weight="800" font-size="38" fill="#ffffff">BILT</text>
+  <text x="215" y="470" text-anchor="middle" font-family="Arial, sans-serif" font-weight="800" font-size="24" letter-spacing="3" fill="#173b35">BILT SCREENSHOT</text>
+  <text x="215" y="515" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#63726e">Add assets/bilt-screenshot.png</text>
+</svg>
