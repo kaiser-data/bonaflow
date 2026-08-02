@@ -108,8 +108,17 @@ export default function OperationsPage() {
         </section>
 
         <section className="feedback-summary-card">
-          <span className="eyebrow">NEXT EVENT</span><h2>Anonymous leftover signals</h2><strong>{summary.total} reports</strong>
-          <div className="summary-grid"><div><h3>Leftovers</h3>{Object.entries(summary.leftovers).map(([key, value]) => <p key={key}><span>{key}</span><strong>{value}</strong></p>)}</div><div><h3>Reasons</h3>{Object.entries(summary.reasons).map(([key, value]) => <p key={key}><span>{reasonLabel[key as keyof typeof reasonLabel]}</span><strong>{value}</strong></p>)}</div></div>
+          <span className="eyebrow">NEXT EVENT</span><h2>Ratings and real feedback</h2>
+          <div className="feedback-kpis">
+            <div><strong>{summary.averageRating?.toFixed(1) ?? "—"}</strong><span>Average rating</span></div>
+            <div><strong>{summary.ratedTotal}</strong><span>Rated dishes</span></div>
+            <div><strong>{summary.voiceResponses}</strong><span>Voice/text explanations</span></div>
+          </div>
+          <div className="summary-grid">
+            <div><h3>Stars</h3>{([5, 4, 3, 2, 1] as const).map((rating) => <p key={rating}><span>{rating} stars</span><strong>{summary.ratings[rating]}</strong></p>)}</div>
+            <div><h3>Leftovers</h3>{Object.entries(summary.leftovers).map(([key, value]) => <p key={key}><span>{key}</span><strong>{value}</strong></p>)}</div>
+            <div><h3>Reasons</h3>{Object.entries(summary.reasons).map(([key, value]) => <p key={key}><span>{reasonLabel[key as keyof typeof reasonLabel]}</span><strong>{value}</strong></p>)}</div>
+          </div>
         </section>
 
         <button type="button" className="reset-button" disabled={busy} onClick={() => void reset()}>Reset demo data</button>
