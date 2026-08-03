@@ -527,11 +527,53 @@ a {
   color: #6e7b77;
 }
 
-.feedback-link {
-  align-self: center;
-  padding: 10px;
-  text-decoration: underline;
-  text-underline-offset: 4px;
+.rate-cta {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+  padding: 11px 14px;
+  border: 1px solid #d5dbd6;
+  border-radius: 14px;
+  background: #fff;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.rate-cta:hover,
+.rate-cta:focus-visible {
+  border-color: #19312f;
+  background: #f8f8f5;
+}
+
+.rate-cta-stars {
+  flex-shrink: 0;
+  color: #f6ce59;
+  font-size: 0.78rem;
+  letter-spacing: 1px;
+}
+
+.rate-cta-copy {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+}
+
+.rate-cta-copy strong {
+  color: #19312f;
+  font-size: 0.88rem;
+}
+
+.rate-cta-copy small {
+  color: #69746f;
+  font-size: 0.72rem;
+}
+
+.rate-cta-arrow {
+  flex-shrink: 0;
+  color: #19312f;
+  font-size: 1.05rem;
 }
 
 .reward-cta {

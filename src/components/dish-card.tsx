@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import type { Availability, Dish } from "@/domain/types";
 
@@ -83,6 +84,14 @@ export function DishCard({
             <span className="detail-label">Visible in the bowl</span>
             <p>{dish.visible.join(", ")}</p>
           </div>
+          <Link className="rate-cta" href={`/feedback?dish=${dish.id}`}>
+            <span className="rate-cta-stars" aria-hidden="true">★★★★★</span>
+            <span className="rate-cta-copy">
+              <strong>Rate this dish</strong>
+              <small>Takes 30 seconds · free coffee</small>
+            </span>
+            <span className="rate-cta-arrow" aria-hidden="true">→</span>
+          </Link>
         </div>
       )}
     </article>

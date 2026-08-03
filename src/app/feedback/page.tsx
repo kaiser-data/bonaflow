@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { Disclaimer } from "@/components/disclaimer";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { loadStoredVoucher, storeVoucher } from "@/domain/rewards";
@@ -15,8 +16,24 @@ import { useLiveState } from "@/hooks/use-live-state";
 const ratings = [1, 2, 3, 4, 5] as const;
 
 export default function FeedbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="app-shell centered-state">
+          <p>Loading dishes…</p>
+        </main>
+      }
+    >
+      <FeedbackFlow />
+    </Suspense>
+  );
+}
+
+function FeedbackFlow() {
   const { state, loading } = useLiveState();
-  const [dishId, setDishId] = useState("");
+  // A dish tapped in the guest menu arrives as ?dish=<id> and pre-fills the picker.
+  const requestedDishId = useSearchParams().get("dish") ?? "";
+  const [dishId, setDishId] = useState(requestedDishId);
   const [rating, setRating] = useState<DishRating | null>(null);
   const [text, setText] = useState("");
   const [extraction, setExtraction] = useState<FeedbackExtraction | null>(null);
@@ -40,6 +57,10 @@ export default function FeedbackPage() {
     return <main className="app-shell centered-state"><p>Feedback is temporarily unavailable.</p></main>;
   }
 
+  // The id can come from the URL, so ignore anything not on today's menu.
+  const knownDishes = state.dishes;
+  const selectedDishId = knownDishes.some((dish) => dish.id === dishId) ? dishId : "";
+
   async function interpret() {
     if (!rating || text.trim().length < 5) return;
     setBusy(true);
@@ -48,7 +69,7 @@ export default function FeedbackPage() {
       const response = await fetch("/api/feedback/interpret", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedDishId: dishId, text }),
+        body: JSON.stringify({ selectedDishId, text }),
       });
       const data = (await response.json()) as {
         extraction?: FeedbackExtraction;
@@ -148,7 +169,7 @@ export default function FeedbackPage() {
         </section>
       ) : (
         <section className="feedback-form">
-          <label>Which dish?<select value={dishId} onChange={(event) => setDishId(event.target.value)}><option value="">Select a dish</option>{state.dishes.map((dish) => <option key={dish.id} value={dish.id}>{dish.name}</option>)}</select></label>
+          <label>Which dish?<select value={selectedDishId} onChange={(event) => setDishId(event.target.value)}><option value="">Select a dish</option>{knownDishes.map((dish) => <option key={dish.id} value={dish.id}>{dish.name}</option>)}</select></label>
 
           <fieldset className="rating-field">
             <legend>How many stars?</legend>
@@ -156,7 +177,7 @@ export default function FeedbackPage() {
               {ratings.map((value) => (
                 <button
                   type="button"
-                  className={rating === value ? "star-button is-selected" : "star-button"}
+                  className={rating !== null && value <= rating ? "star-button is-selected" : "star-button"}
                   aria-label={`${value} out of 5 stars`}
                   aria-pressed={rating === value}
                   key={value}
@@ -176,7 +197,7 @@ export default function FeedbackPage() {
           <label>Or type your explanation<textarea id="feedback-text" value={text} onChange={(event) => setText(event.target.value)} placeholder="Most of it was left because the portion was too large." /></label>
           <p className="privacy-note">Submitted without an account. Please do not include personal information.</p>
           {error && <p className="form-error">{error}</p>}
-          <button type="button" className="primary-button full-button" disabled={busy || !dishId || !rating || text.trim().length < 5} onClick={() => void interpret()}>{busy ? "Understanding…" : "Review feedback"}</button>
+          <button type="button" className="primary-button full-button" disabled={busy || !selectedDishId || !rating || text.trim().length < 5} onClick={() => void interpret()}>{busy ? "Understanding…" : "Review feedback"}</button>
         </section>
       )}
       <Disclaimer />
