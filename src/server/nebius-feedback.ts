@@ -34,8 +34,17 @@ export async function extractFeedback(
       messages: [
         {
           role: "system",
-          content:
-            "Extract anonymous leftover feedback. Do not produce a rating, score, reward, voucher, or operational update. reportedFacts contain only what the guest said; aiInferences contain conclusions.",
+          content: [
+            "Extract anonymous leftover feedback from a catering guest.",
+            "The transcript may be German or English.",
+            "leftoverAmount is how much food the guest LEFT UNEATEN:",
+            '"none" = the guest ate everything;',
+            '"some" = a part was left, including about half;',
+            '"most" = nearly all of it was left;',
+            '"unknown" = the guest did not say.',
+            "reportedFacts contain only what the guest said; aiInferences contain conclusions.",
+            "Do not produce a rating, score, reward, voucher, or operational update.",
+          ].join(" "),
         },
         {
           role: "user",

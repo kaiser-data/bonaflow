@@ -41,8 +41,8 @@ export function AnnouncementCard() {
     <section className="announcement-card">
       <div><span className="eyebrow">LIVE ANNOUNCEMENT</span><h2>A quieter vegan option is available.</h2><p>{announcements.en}</p></div>
       <div className="announcement-actions">
-        <button type="button" onClick={() => void play("en")}>{playing === "en" ? "Loading…" : "▶ English"}</button>
-        <button type="button" onClick={() => void play("de")}>{playing === "de" ? "Loading…" : "▶ Deutsch"}</button>
+        <button type="button" disabled={playing !== null} onClick={() => void play("en")}>{playing === "en" ? "Loading…" : "▶ English"}</button>
+        <button type="button" disabled={playing !== null} onClick={() => void play("de")}>{playing === "de" ? "Loading…" : "▶ Deutsch"}</button>
       </div>
       {fallback && <p className="announcement-fallback" role="status">{fallback}</p>}
     </section>

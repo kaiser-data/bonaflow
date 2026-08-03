@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   appendFeedback,
+  formatFeedbackSummary,
+  interpretFeedbackKeywords,
   validateDishRating,
   validateFeedbackExplanation,
 } from "./feedback";
@@ -50,6 +52,41 @@ describe("rated feedback", () => {
     expect(beforeFeedback).toHaveLength(0);
     expect(afterFeedback[0]).toMatchObject({ rating: 4, id: "feedback-1" });
     expect(afterOps).toEqual(beforeOps);
+  });
+
+  it("reads as a sentence for every leftover amount", () => {
+    const summaries = (["none", "some", "most", "unknown"] as const).map(
+      (leftoverAmount) =>
+        formatFeedbackSummary({ ...extraction, leftoverAmount }, SEED_STATE),
+    );
+    expect(summaries).toEqual([
+      "Nothing was left of the Vegan Chickpeas Quinoa Salad — portion too large",
+      "Some was left of the Vegan Chickpeas Quinoa Salad — portion too large",
+      "Most was left of the Vegan Chickpeas Quinoa Salad — portion too large",
+      "An unknown amount was left of the Vegan Chickpeas Quinoa Salad — portion too large",
+    ]);
+  });
+
+  it("falls back to keywords in English and German", () => {
+    const read = (text: string) =>
+      interpretFeedbackKeywords(text, extraction.dishId, SEED_STATE);
+
+    expect(read("Most of it was left, the portion was too large")).toMatchObject({
+      leftoverAmount: "most",
+      reason: "portion_too_large",
+    });
+    expect(read("Die Portion war viel zu gross, ich habe die Haelfte stehen lassen")).toMatchObject({
+      leftoverAmount: "some",
+      reason: "portion_too_large",
+    });
+    expect(read("I finished it, it was great")).toMatchObject({
+      leftoverAmount: "none",
+    });
+    // Nothing recognised must stay honest rather than guess.
+    expect(read("hmm ok")).toMatchObject({
+      leftoverAmount: "unknown",
+      reason: "other",
+    });
   });
 
   it("builds and restores the event-scoped fixed demo voucher", () => {

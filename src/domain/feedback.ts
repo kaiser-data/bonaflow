@@ -55,6 +55,25 @@ export function validateFeedbackExtraction(
   return item as FeedbackExtraction;
 }
 
+// Ordered keyword fallback for when the language model is unreachable.
+// First match wins, so the patterns must not overlap. German covers only the
+// unambiguous phrases — a confident wrong guess is worse than "unknown".
+const leftoverPatterns: [RegExp, FeedbackExtraction["leftoverAmount"]][] = [
+  [/most(?: of (?:it|the [\w ]+))? (?:was )?left|almost all|barely ate|hardly ate|das meiste/, "most"],
+  [/some(?: of (?:it|the [\w ]+))? (?:was )?left|half left|didn't finish|did not finish|h(?:ä|ae)lfte/, "some"],
+  [/none left|finished it|ate it all|empty bowl/, "none"],
+];
+
+const reasonPatterns: [RegExp, FeedbackExtraction["reason"]][] = [
+  [/portion.{0,12}(large|big)|too much|too large|zu (?:viel|gross|groß)/, "portion_too_large"],
+  [/not tasty|didn't taste|did not taste|bland|too salty|didn't like|did not like/, "not_tasty"],
+  [/diet|allerg|ingredient|wrong dish/, "dietary_mismatch"],
+];
+
+function matchFirst<T>(text: string, patterns: [RegExp, T][]): T | null {
+  return patterns.find(([pattern]) => pattern.test(text))?.[1] ?? null;
+}
+
 export function interpretFeedbackKeywords(
   text: string,
   selectedDishId: string,
@@ -64,22 +83,9 @@ export function interpretFeedbackKeywords(
     throw new Error(`Unknown feedback dishId: ${selectedDishId}`);
   }
   const lower = text.toLowerCase();
-  const leftoverAmount = /most(?: of (?:it|the [\w ]+))? (?:was )?left|almost all|barely ate|hardly ate/.test(lower)
-    ? "most"
-    : /some(?: of (?:it|the [\w ]+))? (?:was )?left|half left|didn't finish|did not finish/.test(lower)
-      ? "some"
-      : /none left|finished it|ate it all|empty bowl/.test(lower)
-        ? "none"
-        : "unknown";
-  const reason = /portion.{0,12}(large|big)|too much|too large/.test(lower)
-    ? "portion_too_large"
-    : /not tasty|didn't taste|did not taste|bland|too salty|didn't like|did not like/.test(lower)
-      ? "not_tasty"
-      : /diet|allerg|ingredient|wrong dish/.test(lower)
-        ? "dietary_mismatch"
-        : text.trim()
-          ? "other"
-          : "unknown";
+  const leftoverAmount = matchFirst(lower, leftoverPatterns) ?? "unknown";
+  const reason =
+    matchFirst(lower, reasonPatterns) ?? (text.trim() ? "other" : "unknown");
   return {
     dishId: selectedDishId,
     leftoverAmount,
@@ -94,11 +100,12 @@ export function interpretFeedbackKeywords(
   };
 }
 
+// Each label is a full clause, so every value reads as a correct sentence.
 const leftoverLabel = {
-  none: "No food",
-  some: "Some of",
-  most: "Most of",
-  unknown: "An unknown amount of",
+  none: "Nothing was left of",
+  some: "Some was left of",
+  most: "Most was left of",
+  unknown: "An unknown amount was left of",
 } as const;
 
 const reasonLabel = {
@@ -115,7 +122,7 @@ export function formatFeedbackSummary(
 ): string {
   const dish = state.dishes.find((item) => item.id === extraction.dishId);
   if (!dish) throw new Error(`Unknown feedback dishId: ${extraction.dishId}`);
-  return `${leftoverLabel[extraction.leftoverAmount]} the ${dish.name} left, ${reasonLabel[extraction.reason]}`;
+  return `${leftoverLabel[extraction.leftoverAmount]} the ${dish.name} — ${reasonLabel[extraction.reason]}`;
 }
 
 export function appendFeedback(
