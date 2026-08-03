@@ -62,6 +62,11 @@ export default function OperationsPage() {
 
         <section className="feedback-summary-card" id="feedback-analytics">
           <span className="eyebrow">NEXT EVENT</span><h2>Ratings and real feedback</h2>
+          <p className="ai-notice">
+            <span className="ai-badge">AI</span>
+            Stars are tapped by guests. Leftovers and reasons are extracted from
+            their words by AI · KI-Auswertung — verify before acting on them.
+          </p>
           <div className="feedback-kpis">
             <div><strong>{summary.averageRating?.toFixed(1) ?? "—"}</strong><span>Average rating</span></div>
             <div><strong>{summary.ratedTotal}</strong><span>Rated dishes</span></div>
