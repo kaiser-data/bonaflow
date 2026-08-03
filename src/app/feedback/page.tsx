@@ -161,6 +161,10 @@ function FeedbackFlow() {
       ) : extraction ? (
         <section className="feedback-confirm">
           <span className="eyebrow">WHAT WE UNDERSTOOD</span>
+          <p className="ai-notice">
+            <span className="ai-badge">AI</span>
+            Summarised by AI — please check it before you confirm.
+          </p>
           {offline && <div className="offline-label">offline interpretation</div>}
           <blockquote>{rating} stars. {summary}</blockquote>
           {error && <p className="form-error">{error}</p>}

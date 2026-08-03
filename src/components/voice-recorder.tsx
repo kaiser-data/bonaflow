@@ -133,6 +133,10 @@ export function VoiceRecorder({
         {recording ? "Release" : "Hold to talk"}
       </button>
       <p aria-live="polite">{message}</p>
+      <p className="ai-notice">
+        <span className="ai-badge">AI</span>
+        Your recording is transcribed by AI · KI-Transkription
+      </p>
     </div>
   );
 }

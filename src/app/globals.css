@@ -527,6 +527,33 @@ a {
   color: #6e7b77;
 }
 
+.ai-notice {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+  color: #69746f;
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+.ai-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border: 1px solid #b9c0bb;
+  border-radius: 5px;
+  color: #334b47;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.ai-disclosure {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e6e1;
+}
+
 .rate-cta {
   display: flex;
   min-height: 56px;

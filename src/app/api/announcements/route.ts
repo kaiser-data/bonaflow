@@ -50,7 +50,14 @@ export async function POST(request: Request) {
       throw new Error(`ElevenLabs speech failed (${response.status}).`);
     }
     return new NextResponse(await response.arrayBuffer(), {
-      headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" },
+      headers: {
+        "Content-Type": "audio/mpeg",
+        "Cache-Control": "no-store",
+        // Machine-readable disclosure that this audio is synthetic (EU AI Act
+        // Art. 50). The visible notice lives on the announcement card.
+        "X-AI-Generated": "true",
+        "X-AI-Generated-By": "elevenlabs/eleven_flash_v2_5",
+      },
     });
   } catch (error) {
     console.error("BonaFlow announcement failed", error);
